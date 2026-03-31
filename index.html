@@ -3,17 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EC 報銷精靈 Pro</title>
+    <title>Expense Claim 申報系統</title>
+    <!-- 引入 ExcelJS 庫，用於生成 .xlsx 檔案 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;500;600;700&display=swap');
         
         :root { 
-            --primary: #4f46e5; /* Modern Indigo */
+            --primary: #4f46e5; 
             --primary-hover: #4338ca; 
-            --secondary: #10b981; /* Emerald Green */
+            --secondary: #10b981; 
             --secondary-hover: #059669;
             --danger: #ef4444; 
             --danger-hover: #dc2626;
+            --warning: #f59e0b;
             --bg: #f3f4f6; 
             --surface: #ffffff;
             --text-main: #1f2937;
@@ -22,7 +25,7 @@
         }
 
         body { 
-            font-family: 'Noto Sans HK', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-family: 'Noto Sans HK', sans-serif; 
             background-color: var(--bg); 
             color: var(--text-main); 
             padding: 30px 15px; 
@@ -30,7 +33,7 @@
         }
 
         .container { 
-            max-width: 1100px; 
+            max-width: 1200px; 
             margin: auto; 
             background: var(--surface); 
             padding: 35px; 
@@ -38,14 +41,18 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
         }
 
-        h2 { text-align: center; color: var(--primary); margin-top: 0; font-weight: 700; font-size: 28px; letter-spacing: 0.5px; }
+        h2 { text-align: center; color: var(--primary); margin-top: 0; font-weight: 700; font-size: 28px; }
         
         /* Profile Card */
-        .profile-card { background: #eef2ff; border: 1px solid #c7d2fe; padding: 16px 24px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .profile-card { background: #eef2ff; border: 1px solid #c7d2fe; padding: 20px 24px; border-radius: 12px; display: flex; flex-direction: column; gap: 15px; align-items: stretch; margin-bottom: 25px; }
+        .profile-header { display: flex; justify-content: space-between; align-items: center; }
         .profile-info { font-size: 15px; color: #3730a3; font-weight: 500; }
         .profile-info strong { color: #312e81; font-size: 16px; }
-        .btn-edit-profile { background: white; border: 1px solid #818cf8; color: #4f46e5; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .btn-edit-profile { background: white; border: 1px solid #818cf8; color: #4f46e5; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s; }
         .btn-edit-profile:hover { background: #4f46e5; color: white; border-color: #4f46e5; }
+        .ec-number-box { background: white; padding: 12px 16px; border-radius: 8px; border: 1px dashed #a5b4fc; display: flex; align-items: center; gap: 12px; }
+        .ec-number-box label { margin: 0; font-size: 14px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+        .ec-number-box input { flex: 1; padding: 8px 12px; margin: 0; border: 1px solid #d1d5db; font-weight: 600; color: #1f2937; }
 
         /* Action Bar */
         .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
@@ -63,94 +70,101 @@
 
         /* Table */
         .table-container { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; }
-        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-        tr:last-child td { border-bottom: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; background: white; min-width: 900px; }
+        th, td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 12px; }
         tr:hover { background-color: #f9fafb; }
-        .particular-text { color: var(--primary); font-weight: 600; font-family: 'Consolas', monospace; font-size: 13px; background: #eef2ff; padding: 4px 8px; border-radius: 4px; word-break: break-all; }
-        .delete-btn { color: #9ca3af; cursor: pointer; font-size: 18px; transition: 0.2s; border-radius: 6px; padding: 4px; display: inline-flex; }
+        .particular-text { color: var(--primary); font-weight: 600; font-family: 'Consolas', monospace; font-size: 13px; background: #eef2ff; padding: 6px 8px; border-radius: 6px; word-break: break-word; line-height: 1.4; display: inline-block;}
+        
+        .action-td { display: flex; gap: 8px; justify-content: center; }
+        .icon-btn { background: none; border: none; cursor: pointer; font-size: 18px; padding: 6px; border-radius: 6px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+        .edit-btn { color: var(--primary); }
+        .edit-btn:hover { background-color: #eef2ff; }
+        .delete-btn { color: #9ca3af; }
         .delete-btn:hover { color: var(--danger); background-color: #fee2e2; }
         
         /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
-        .modal-content { background: var(--surface); width: 95%; max-width: 550px; border-radius: 16px; padding: 30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: var(--surface); width: 95%; max-width: 600px; border-radius: 16px; padding: 30px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 15px; margin-bottom: 20px; }
         .modal-header h3 { margin: 0; color: var(--text-main); font-size: 20px; }
         .close-btn { background: #f3f4f6; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .close-btn:hover { background: #e5e7eb; color: var(--text-main); }
 
-        /* Wizard Categories */
-        .cat-btn { display: flex; align-items: center; width: 100%; background: white; border: 2px solid var(--border); padding: 16px 20px; margin-bottom: 12px; border-radius: 12px; font-size: 16px; font-weight: 600; color: var(--text-main); cursor: pointer; transition: all 0.2s ease; }
-        .cat-btn:hover { border-color: var(--primary); background: #f5f3ff; color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .cat-icon { font-size: 24px; margin-right: 15px; background: #f3f4f6; padding: 10px; border-radius: 10px; }
-        .cat-btn:hover .cat-icon { background: white; }
+        /* UI/UX Category Buttons */
+        .cat-btn { display: flex; align-items: flex-start; width: 100%; background: white; border: 2px solid var(--border); padding: 18px 20px; margin-bottom: 15px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; text-align: left; }
+        .cat-btn:hover { border-color: var(--primary); background: #f8fafc; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transform: translateY(-2px); }
+        .cat-icon { font-size: 28px; margin-right: 18px; background: #f3f4f6; padding: 12px; border-radius: 12px; flex-shrink: 0; }
+        .cat-btn:hover .cat-icon { background: #eef2ff; }
+        .cat-text { flex-grow: 1; }
+        .cat-title { display: block; font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; }
+        .cat-desc { display: block; font-size: 13px; color: var(--text-muted); line-height: 1.4; font-weight: 400; }
+        .cat-highlight { color: var(--primary); font-weight: 600; }
 
         /* Form Fields */
-        .step-field { margin-bottom: 16px; padding: 16px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 8px; animation: slideDown 0.3s ease-out forwards; opacity: 0; transform: translateY(-10px); box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
-        .sub-field { margin-bottom: 12px; }
+        .step-field { margin-bottom: 16px; padding: 18px; background: white; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 8px; animation: slideDown 0.3s ease-out forwards; opacity: 0; transform: translateY(-10px); box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .step-field.optional { border-left-color: var(--warning); background: #fffbeb; }
         @keyframes slideDown { to { opacity: 1; transform: translateY(0); } }
         
-        label { display: block; font-weight: 600; font-size: 13px; color: #4b5563; margin-bottom: 6px; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; font-family: inherit; transition: border-color 0.2s; outline: none; box-sizing: border-box; background: #f9fafb; }
+        label { display: block; font-weight: 600; font-size: 13px; color: #4b5563; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; outline: none; box-sizing: border-box; background: #f9fafb; }
         input:focus, select:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
         
+        .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 10px; background: #fef2f2; border-radius: 6px; border: 1px solid #fecaca; }
+        .checkbox-row input { width: auto; margin: 0; }
+        .checkbox-row label { margin: 0; color: #b91c1c; cursor: pointer; }
+
         .btn-full { width: 100%; margin-top: 15px; }
         .hidden { display: none !important; }
         .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
         .empty-state-icon { font-size: 48px; margin-bottom: 15px; opacity: 0.5; }
-        
-        .category-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-        .bg-pur { background: #fee2e2; color: #b91c1c; }
-        .bg-trans { background: #fef3c7; color: #b45309; }
-        .bg-allow { background: #e0e7ff; color: #4338ca; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📊 EC 報銷精靈 Pro</h2>
+    <h2>📊 Expense Claim 申報系統</h2>
     
-    <!-- 員工個人檔案區塊 -->
     <div class="profile-card" id="profileCard" style="display: none;">
-        <div class="profile-info">
-            👤 當前申報人：<strong id="displayFullName"></strong> <span style="color:#6b7280; font-weight: normal; margin-left: 5px;">(簡稱: <span id="displayShortName"></span>)</span>
+        <div class="profile-header">
+            <div class="profile-info">
+                👤 申報人：<strong id="displayFullName"></strong> <span style="color:#6b7280; font-weight: normal; margin-left: 5px;">(編號: <span id="displayStaffId"></span> | 簡稱: <span id="displayShortName"></span>)</span>
+            </div>
+            <button class="btn-edit-profile" onclick="openProfileModal()">✏️ 修改個人資料</button>
         </div>
-        <button class="btn-edit-profile" onclick="openProfileModal()">✏️ 修改身份</button>
+        <div class="ec-number-box">
+            <label>📄 EC 編號：</label>
+            <input type="text" id="mainECNumber" placeholder="例: EC26030003 (在 ERP 新建並儲存後會自動產生)" oninput="updateMainECNumber()">
+        </div>
     </div>
 
-    <!-- 功能控制列 -->
     <div class="action-bar">
         <button class="btn btn-primary" onclick="openModal()" id="btnAddNew" disabled>➕ 新增報銷</button>
         
         <div class="action-group">
             <button class="btn btn-outline" onclick="sortRecords('date')" title="按日期排序">📅 排日期</button>
-            <button class="btn btn-outline" onclick="sortRecords('category')" title="按 買嘢 > 車費 > 津貼 排序">🗂️ 排類別</button>
-            <button class="btn btn-success" onclick="exportCSV()">📥 下載 Excel</button>
-            <button class="btn btn-danger-outline" onclick="clearAllRecords()">🗑️ 清空開新單</button>
+            <button class="btn btn-outline" onclick="sortRecords('category')" title="按 採購 > 車費 > 津貼 排序">🗂️ 排類別</button>
+            <button class="btn btn-success" onclick="exportExcel()" id="btnExportExcel">📥 匯出 Excel</button>
+            <button class="btn btn-danger-outline" onclick="clearAllRecords()">🗑️ 清空所有記錄</button>
         </div>
     </div>
 
-    <!-- 數據表格 -->
     <div class="table-container">
         <table>
             <thead>
                 <tr>
-                    <th width="8%">類別</th>
-                    <th width="10%">項目編號</th>
-                    <th width="12%">供應商</th>
-                    <th width="8%">日期</th>
-                    <th width="10%">客戶</th>
-                    <th width="18%">項目</th>
-                    <th width="26%">分項 (Particular)</th>
-                    <th width="8%">價錢</th>
-                    <th width="4%"></th>
+                    <th width="6%">編號</th>
+                    <th width="12%">項目編號</th>
+                    <th width="16%">供應商</th>
+                    <th width="44%">分項 (Particular)</th>
+                    <th width="10%">價錢</th>
+                    <th width="12%" style="text-align: center;">操作</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <tr><td colspan="9" class="empty-state">
+                <tr><td colspan="6" class="empty-state">
                     <div class="empty-state-icon">📄</div>
-                    尚未加入任何記錄<br>請點擊左上方「新增報銷」開始，資料會自動保存在瀏覽器。
+                    尚未加入任何記錄<br>請點擊左上方「新增報銷」開始，資料將自動保存於本地瀏覽器。
                 </td></tr>
             </tbody>
         </table>
@@ -161,25 +175,34 @@
 <div class="modal-overlay" id="profileModal" style="background: rgba(17, 24, 39, 0.85);">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>👤 請先設定申報人身份</h3>
+            <h3>👤 請設定申報人基本資料</h3>
             <button class="close-btn" id="closeProfileBtn" onclick="closeProfileModal()" style="display:none;">×</button>
         </div>
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 0; line-height: 1.5;">設定後系統會自動永久記住，並在有需要的地方自動為你填入，提升效率並防止出錯。</p>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 0; line-height: 1.5;">設定後系統將自動記錄，並於後續申報中自動填入，以提升效率並減少人為錯誤。</p>
         
         <div class="step-field" style="animation: none; opacity: 1; transform: none; margin-bottom: 15px;">
             <label>1. 員工全名 (Full Name) <span style="color:var(--danger)">*</span></label>
-            <input type="text" id="setupFullName" placeholder="例: Chan Tai Man Tom (用於 Supplier 欄位)">
+            <input type="text" id="setupFullName" placeholder="例: Chan Tai Man (用於 Excel 左上角及 Supplier)">
         </div>
-        <div class="step-field" style="animation: none; opacity: 1; transform: none; margin-bottom: 25px;">
-            <label>2. 員工簡稱 (Short Name) <span style="color:var(--danger)">*</span></label>
-            <input type="text" id="setupShortName" placeholder="例: Tom (用於 Particular 串連)">
+        <div class="step-field" style="animation: none; opacity: 1; transform: none; margin-bottom: 15px;">
+            <label>2. 員工編號 (Staff ID) <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="setupStaffId" placeholder="例: 123456 (用於 Excel 左上方)">
+        </div>
+        <div class="step-field" style="animation: none; opacity: 1; transform: none; margin-bottom: 15px;">
+            <label>3. 員工簡稱 (Short Name) <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="setupShortName" placeholder="例: Dyman (用於 Particular 字串連繫)">
+        </div>
+        <div class="step-field optional" style="animation: none; opacity: 1; transform: none; margin-bottom: 25px;">
+            <label>4. 報銷單編號 (EC Number) <span style="color:var(--text-muted); font-weight:normal;">(可稍後填寫)</span></label>
+            <input type="text" id="setupECNumber" placeholder="例: EC26030003">
+            <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">* 提示：此號碼於 ERP 系統新建並儲存報銷單後自動產生。</span>
         </div>
         
-        <button class="btn btn-primary btn-full" onclick="saveProfile()" style="margin-top: 0;">💾 儲存並開始</button>
+        <button class="btn btn-primary btn-full" onclick="saveProfile()" style="margin-top: 0;">💾 儲存設定</button>
     </div>
 </div>
 
-<!-- 新增報銷記錄精靈彈窗 -->
+<!-- 新增/修改 報銷記錄精靈彈窗 -->
 <div class="modal-overlay" id="wizardModal">
     <div class="modal-content">
         <div class="modal-header">
@@ -189,52 +212,79 @@
 
         <div id="step1">
             <button class="cat-btn" onclick="startFlow('purchase')">
-                <span class="cat-icon">🛍️</span> 幫公司 / 客戶 畀咗錢
+                <div class="cat-icon">🛍️</div>
+                <div class="cat-text">
+                    <span class="cat-title">公司 / 客戶採購支出</span>
+                    <span class="cat-desc">適用於文具、設備、物資、運費等各類代支採購項目。</span>
+                </div>
             </button>
+            
             <button class="cat-btn" onclick="startFlow('transport')">
-                <span class="cat-icon">🚕</span> 上班/活動期間外出車費
+                <div class="cat-icon">🚕</div>
+                <div class="cat-text">
+                    <span class="cat-title">外出工作交通費 (<span class="cat-highlight">實報實銷</span>)</span>
+                    <span class="cat-desc">適用於正常工作時間內外出工作，或已獲批實報實銷之交通支出。</span>
+                </div>
             </button>
+            
             <button class="cat-btn" onclick="startFlow('allowance')">
-                <span class="cat-icon">💰</span> 各類員工津貼 (Staff Allowance)
+                <div class="cat-icon">💰</div>
+                <div class="cat-text">
+                    <span class="cat-title">各項員工津貼 (Staff Allowance)</span>
+                    <span class="cat-desc">包含：跨時段交通補貼 ($50)、超時工作津貼 ($400)、全勤、上網及牙科津貼等。</span>
+                </div>
             </button>
         </div>
 
         <div id="step2" class="hidden">
             
-            <!-- 流程 1：買嘢 -->
+            <!-- 流程 1：採購 -->
             <form id="flow_purchase" class="hidden" onsubmit="event.preventDefault(); savePur();">
                 <div class="step-field" id="q_pur_date"><label>📅 費用發生日期</label><input type="date" id="pur_date" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_client"><label>🏢 為邊個畀錢？ (內部請填「公司」)</label><input type="text" id="pur_client" placeholder="例: 公司 / PLB / AECOM" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="pur_proj" placeholder="例: QTN251020-01" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_client"><label>🏢 相關客戶/公司 (內部請填「公司」)</label><input type="text" id="pur_client" placeholder="例: 公司 / PLB / AECOM" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="pur_proj" placeholder="例: QTN251020-01 或 NA" oninput="checkPur()"></div>
                 <div class="step-field hidden" id="q_pur_sup"><label>🏪 供應商 (Supplier)</label><input type="text" id="pur_sup" placeholder="例: Taobao / HKTV Mall" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_item"><label>📦 畀咗咩錢？ (Item Description)</label><input type="text" id="pur_item" placeholder="例: 430ml瓶裝水100支" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_price"><label>💰 價錢 HKD</label><input type="number" step="0.1" id="pur_price" placeholder="例: 150" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_item"><label>📦 支出項目描述 (Item Description)</label><input type="text" id="pur_item" placeholder="例: 430ml瓶裝水100支" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_price"><label>💰 金額 HKD</label><input type="number" step="0.1" id="pur_price" placeholder="例: 150" oninput="checkPur()"></div>
+                
+                <div class="step-field optional hidden" id="q_pur_remarks">
+                    <label>⚠️ 備註 (非必填)</label>
+                    <input type="text" id="pur_remarks" placeholder="例: Crew Meal / Business Meal / 經理批准">
+                    <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">* 填寫後將自動附加至 Particular 末端</span>
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-full hidden" id="btn_pur_submit">✅ 確認加入清單</button>
             </form>
 
             <!-- 流程 2：車費 -->
             <form id="flow_transport" class="hidden" onsubmit="event.preventDefault(); saveTrans();">
                 <div class="step-field" id="q_trans_date"><label>📅 費用發生日期</label><input type="date" id="trans_date" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_client"><label>🏢 相關客戶 (內部請填「公司」)</label><input type="text" id="trans_client" placeholder="例: 公司 / PLB" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="trans_proj" placeholder="例: QTN251020-01" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_client"><label>🏢 相關客戶/公司 (內部請填「公司」)</label><input type="text" id="trans_client" placeholder="例: 公司 / PLB" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="trans_proj" placeholder="例: QTN251020-01 或 NA" oninput="checkTrans()"></div>
                 <div class="step-field hidden" id="q_trans_sup"><label>🚌 交通工具 (Supplier)</label><input type="text" id="trans_sup" placeholder="例: MTR / KMB / Taxi" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_reason"><label>🚕 出行原因</label><input type="text" id="trans_reason" placeholder="例: 送水到飲水工作坊" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_route"><label>📍 交通路徑</label><input type="text" id="trans_route" placeholder="例: 526>旺角>526" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_reason"><label>🚕 出行原因 / 目的</label><input type="text" id="trans_reason" placeholder="例: 運送物資至展覽場地" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_route"><label>📍 交通路線</label><input type="text" id="trans_route" placeholder="例: 526>旺角>526" oninput="checkTrans()"></div>
                 <div class="step-field hidden" id="q_trans_price"><label>💰 車費 HKD</label><input type="number" step="0.1" id="trans_price" placeholder="例: 50" oninput="checkTrans()"></div>
+                
+                <div class="step-field optional hidden" id="q_trans_remarks">
+                    <label>⚠️ 備註 (非必填)</label>
+                    <input type="text" id="trans_remarks" placeholder="例: 惡劣天氣經理批准乘坐的士">
+                </div>
+
                 <button type="submit" class="btn btn-primary btn-full hidden" id="btn_trans_submit">✅ 確認加入清單</button>
             </form>
 
             <!-- 流程 3：津貼 -->
             <form id="flow_allowance" class="hidden" onsubmit="event.preventDefault(); saveAllow();">
                 <div class="step-field" id="q_allow_type">
-                    <label>🎖 申請邊種津貼？</label>
+                    <label>🎖 申請津貼類別</label>
                     <select id="allow_type" oninput="checkAllow()">
                         <option value="">-- 請選擇 --</option>
                         <option value="Attendance">全勤津貼 ($1000)</option>
                         <option value="Internet">上網費 (Internet Fee)</option>
                         <option value="Dental">牙科津貼 (Dental Allowance)</option>
-                        <option value="50">$50 車費補貼</option>
-                        <option value="400">$400 工作津貼</option>
+                        <option value="50">$50 交通補貼 (跨時段/假日)</option>
+                        <option value="400">$400 超時工作津貼</option>
                     </select>
                 </div>
 
@@ -253,12 +303,12 @@
                     <div style="display: flex; gap: 10px;">
                         <select id="allow_att_m1" oninput="checkAllow()" style="flex: 2;">
                             <option value="">-- 請選擇 --</option>
-                            <option value="1">1月 至 2月 (Jan to Feb)</option><option value="2">2月 至 3月 (Feb to Mar)</option>
-                            <option value="3">3月 至 4月 (Mar to Apr)</option><option value="4">4月 至 5月 (Apr to May)</option>
-                            <option value="5">5月 至 6月 (May to Jun)</option><option value="6">6月 至 7月 (Jun to Jul)</option>
-                            <option value="7">7月 至 8月 (Jul to Aug)</option><option value="8">8月 至 9月 (Aug to Sep)</option>
-                            <option value="9">9月 至 10月 (Sep to Oct)</option><option value="10">10月 至 11月 (Oct to Nov)</option>
-                            <option value="11">11月 至 12月 (Nov to Dec)</option><option value="12">12月 至 1月 (Dec to Jan)</option>
+                            <option value="1">1月 至 2月</option><option value="2">2月 至 3月</option>
+                            <option value="3">3月 至 4月</option><option value="4">4月 至 5月</option>
+                            <option value="5">5月 至 6月</option><option value="6">6月 至 7月</option>
+                            <option value="7">7月 至 8月</option><option value="8">8月 至 9月</option>
+                            <option value="9">9月 至 10月</option><option value="10">10月 至 11月</option>
+                            <option value="11">11月 至 12月</option><option value="12">12月 至 1月</option>
                         </select>
                         <input type="number" id="allow_att_y1" style="flex: 1;" oninput="checkAllow()">
                     </div>
@@ -269,12 +319,9 @@
                     <div style="display: flex; gap: 10px;">
                         <select id="allow_att_m2" oninput="checkAllow()" style="flex: 2;">
                             <option value="">-- 請選擇 --</option>
-                            <option value="1">1月 (January)</option><option value="2">2月 (February)</option>
-                            <option value="3">3月 (March)</option><option value="4">4月 (April)</option>
-                            <option value="5">5月 (May)</option><option value="6">6月 (June)</option>
-                            <option value="7">7月 (July)</option><option value="8">8月 (August)</option>
-                            <option value="9">9月 (September)</option><option value="10">10月 (October)</option>
-                            <option value="11">11月 (November)</option><option value="12">12月 (December)</option>
+                            <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option>
+                            <option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option>
+                            <option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                         </select>
                         <input type="number" id="allow_att_y2" style="flex: 1;" oninput="checkAllow()">
                     </div>
@@ -282,7 +329,7 @@
 
                 <!-- 分支 C: 上網費專用 -->
                 <div class="step-field hidden" id="q_allow_internet_amt">
-                    <label>💰 上網費金額</label>
+                    <label>💰 申報金額</label>
                     <select id="allow_internet_amt" oninput="checkAllow()">
                         <option value="">-- 請選擇 --</option>
                         <option value="100">$100</option>
@@ -290,16 +337,13 @@
                     </select>
                 </div>
                 <div class="step-field hidden" id="q_allow_internet_month_grp">
-                    <label>📆 申報月份 (每月可 claim)</label>
+                    <label>📆 申報月份</label>
                     <div style="display: flex; gap: 10px;">
                         <select id="allow_internet_month" oninput="checkAllow()" style="flex: 2;">
                             <option value="">-- 請選擇 --</option>
-                            <option value="1">1月 (January)</option><option value="2">2月 (February)</option>
-                            <option value="3">3月 (March)</option><option value="4">4月 (April)</option>
-                            <option value="5">5月 (May)</option><option value="6">6月 (June)</option>
-                            <option value="7">7月 (July)</option><option value="8">8月 (August)</option>
-                            <option value="9">9月 (September)</option><option value="10">10月 (October)</option>
-                            <option value="11">11月 (November)</option><option value="12">12月 (December)</option>
+                            <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option><option value="4">4月</option>
+                            <option value="5">5月</option><option value="6">6月</option><option value="7">7月</option><option value="8">8月</option>
+                            <option value="9">9月</option><option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
                         </select>
                         <input type="number" id="allow_internet_year" style="flex: 1;" oninput="checkAllow()">
                     </div>
@@ -307,7 +351,7 @@
 
                 <!-- 分支 D: 牙科津貼專用 -->
                 <div class="step-field hidden" id="q_allow_dental_amt">
-                    <label>💰 牙科津貼金額</label>
+                    <label>💰 申報金額</label>
                     <select id="allow_dental_amt" oninput="checkAllow()">
                         <option value="">-- 請選擇 --</option>
                         <option value="500">$500</option>
@@ -315,34 +359,46 @@
                     </select>
                 </div>
                 <div class="step-field hidden" id="q_allow_dental_year_grp">
-                    <label>📆 申報年份 (一年 claim 一次)</label>
-                    <input type="number" id="allow_dental_year" oninput="checkAllow()" placeholder="例: 2024">
+                    <label>📆 申報年份</label>
+                    <input type="number" id="allow_dental_year" oninput="checkAllow()">
                 </div>
 
                 <!-- 分支 B: $50 / $400 專用 -->
                 <div class="step-field hidden" id="q_allow_date">
                     <label>📅 費用發生日期</label>
                     <input type="date" id="allow_date" oninput="checkAllow()">
+                    
+                    <div class="checkbox-row hidden" id="allow_manual_holiday_row">
+                        <input type="checkbox" id="allow_manual_holiday" onchange="checkAllow()">
+                        <label for="allow_manual_holiday">手動標記為公眾假期 (如適用)</label>
+                    </div>
+
                     <div id="allow_date_badge" style="margin-top: 8px; font-weight: bold; font-size: 13px; padding: 6px 10px; border-radius: 6px;" class="hidden"></div>
                 </div>
 
-                <div class="step-field hidden" id="q_allow_client"><label>🏢 相關客戶/項目 (內部請填「公司」)</label><input type="text" id="allow_client" placeholder="例: 公司 / BOC Dinner Event" oninput="checkAllow()"></div>
-                <div class="step-field hidden" id="q_allow_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="allow_proj" placeholder="例: QTN251020-01" oninput="checkAllow()"></div>
+                <div class="step-field hidden" id="q_allow_client"><label>🏢 相關客戶/公司 (內部請填「公司」)</label><input type="text" id="allow_client" placeholder="例: 公司 / BOC Dinner Event" oninput="checkAllow()"></div>
+                <div class="step-field hidden" id="q_allow_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="allow_proj" placeholder="例: QTN251020-01 或 NA" oninput="checkAllow()"></div>
                 
                 <div class="step-field hidden" id="q_allow_shift">
-                    <label>⏰ 咩時段外出工作？</label>
+                    <label>⏰ 外出工作時段</label>
                     <select id="allow_shift" oninput="checkAllow()">
                         <option value="">-- 請選擇 --</option>
-                        <option value="Morning">上班時間前外出 (08:00 前)</option>
-                        <option value="Evening">下班時間後外出 (18:30 後)</option>
+                        <option value="Morning">上班時間前外出 (08:00 前到達)</option>
+                        <option value="Evening">下班時間後外出 (18:30 後開始)</option>
                     </select>
                 </div>
 
                 <div class="step-field hidden" id="q_allow_time">
-                    <div id="f_allow_start_time" class="sub-field hidden"><label style="color: var(--primary);">⏰ 返工時間</label><input type="time" id="allow_start_time" oninput="checkAllow()"></div>
-                    <div id="f_allow_start_loc" class="sub-field hidden"><label style="color: var(--primary);">📍 返工地點 (必須公司外)</label><input type="text" id="allow_start_loc" placeholder="例: 旺角 / 客戶辦公室" oninput="checkAllow()"></div>
-                    <div id="f_allow_end_time" class="sub-field hidden"><label style="color: var(--secondary);">⏰ 收工時間</label><input type="time" id="allow_end_time" oninput="checkAllow()"></div>
-                    <div id="f_allow_end_loc" class="sub-field hidden"><label style="color: var(--secondary);">📍 收工地點 (必須公司外)</label><input type="text" id="allow_end_loc" placeholder="例: 中環 / 展覽館" oninput="checkAllow()"></div>
+                    <div id="f_allow_start_time" class="sub-field hidden"><label style="color: var(--primary);">⏰ 到達時間 (Start Time)</label><input type="time" id="allow_start_time" oninput="checkAllow()"></div>
+                    <div id="f_allow_start_loc" class="sub-field hidden"><label style="color: var(--primary);">📍 工作地點</label><input type="text" id="allow_start_loc" placeholder="例: 旺角 / 客戶辦公室" oninput="checkAllow()"></div>
+                    <div id="f_allow_end_time" class="sub-field hidden"><label style="color: var(--secondary);">⏰ 離開時間 (End Time)</label><input type="time" id="allow_end_time" oninput="checkAllow()"></div>
+                    <div id="f_allow_end_loc" class="sub-field hidden"><label style="color: var(--secondary);">📍 離開地點</label><input type="text" id="allow_end_loc" placeholder="例: 中環 / 展覽館" oninput="checkAllow()"></div>
+                </div>
+
+                <!-- 備註欄 -->
+                <div class="step-field optional hidden" id="q_allow_remarks">
+                    <label>⚠️ 備註 (非必填)</label>
+                    <input type="text" id="allow_remarks" placeholder="例: 經理已批准">
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-full hidden" id="btn_allow_submit">✅ 確認加入清單</button>
@@ -356,32 +412,35 @@
 <script>
     // 核心數據
     let records = [];
+    let editModeIndex = -1; // 記錄正在編輯邊一條
     const currentYear = new Date().getFullYear();
     
-    // 全局身份變數
     let globalFullName = '';
     let globalShortName = '';
+    let globalStaffId = '';
 
-    // 初始化與讀取 LocalStorage
+    // 初始化
     window.onload = function() {
         document.getElementById('allow_att_y1').value = currentYear;
         document.getElementById('allow_att_y2').value = currentYear;
         document.getElementById('allow_internet_year').value = currentYear;
         document.getElementById('allow_dental_year').value = currentYear;
 
-        // 讀取身份
         const savedFullName = localStorage.getItem('ec_fullname');
         const savedShortName = localStorage.getItem('ec_shortname');
+        const savedStaffId = localStorage.getItem('ec_staffid');
+        const savedECNumber = localStorage.getItem('ec_current_number');
 
-        if (savedFullName && savedShortName) {
+        if (savedFullName && savedShortName && savedStaffId) {
             globalFullName = savedFullName;
             globalShortName = savedShortName;
+            globalStaffId = savedStaffId;
+            if (savedECNumber) document.getElementById('mainECNumber').value = savedECNumber;
             updateProfileUI();
         } else {
             openProfileModal(true);
         }
 
-        // 讀取清單記錄
         const savedRecords = localStorage.getItem('ec_records_data');
         if (savedRecords) {
             records = JSON.parse(savedRecords);
@@ -389,78 +448,105 @@
         }
     };
 
-    // 保存清單到 LocalStorage
-    function saveRecordsToLocal() {
-        localStorage.setItem('ec_records_data', JSON.stringify(records));
-    }
+    function saveRecordsToLocal() { localStorage.setItem('ec_records_data', JSON.stringify(records)); }
 
     // ========== 排序功能 ==========
     function sortRecords(method) {
         if (records.length === 0) return;
-        
         if (method === 'date') {
             records.sort((a, b) => new Date(a.rawDate) - new Date(b.rawDate));
         } else if (method === 'category') {
             records.sort((a, b) => {
-                if (a.catId !== b.catId) return a.catId - b.catId; // 1:Pur, 2:Trans, 3:Allow
+                if (a.catId !== b.catId) return a.catId - b.catId; 
                 return new Date(a.rawDate) - new Date(b.rawDate);
             });
         }
-        
-        saveRecordsToLocal();
-        renderTable();
+        saveRecordsToLocal(); renderTable();
     }
 
-    // 清空所有記錄
     function clearAllRecords() {
-        if (records.length === 0) return alert("清單已經係空嘅！");
-        if (confirm("⚠️ 確定要清空畫面上所有記錄？（請確保你已經下載咗 Excel！）")) {
-            records = [];
-            saveRecordsToLocal();
+        if (records.length === 0) return alert("清單為空！");
+        if (confirm("⚠️ 確定清空所有記錄？（請確保已成功匯出 Excel 備份）")) {
+            records = []; 
+            saveRecordsToLocal(); 
             renderTable();
+            
+            setTimeout(() => {
+                const newEC = prompt("✅ 記錄已清空。\n\n請輸入【下一份申報單】的 EC 編號：\n(如尚未建立可留空)");
+                if (newEC !== null) {
+                    document.getElementById('mainECNumber').value = newEC.trim();
+                    updateMainECNumber();
+                }
+            }, 300);
         }
     }
 
-    // ========== 個人資料設定邏輯 ==========
+    // ========== 身份及全局 EC 編號設定 ==========
     function openProfileModal(isFirstTime = false) {
         document.getElementById('profileModal').style.display = 'flex';
         document.getElementById('setupFullName').value = globalFullName;
+        document.getElementById('setupStaffId').value = globalStaffId;
         document.getElementById('setupShortName').value = globalShortName;
+        document.getElementById('setupECNumber').value = document.getElementById('mainECNumber').value || '';
         document.getElementById('closeProfileBtn').style.display = isFirstTime ? 'none' : 'flex';
     }
 
-    function closeProfileModal() {
-        document.getElementById('profileModal').style.display = 'none';
-    }
+    function closeProfileModal() { document.getElementById('profileModal').style.display = 'none'; }
 
     function saveProfile() {
         const fn = document.getElementById('setupFullName').value.trim();
+        const st = document.getElementById('setupStaffId').value.trim();
         const sn = document.getElementById('setupShortName').value.trim();
-        if (!fn || !sn) return alert("請填寫全名及簡稱！");
-
-        globalFullName = fn;
-        globalShortName = sn;
-        localStorage.setItem('ec_fullname', fn);
-        localStorage.setItem('ec_shortname', sn);
+        const ec = document.getElementById('setupECNumber').value.trim();
         
-        updateProfileUI();
+        if (!fn || !sn || !st) return alert("請完整填寫必填資料！");
+
+        globalFullName = fn; globalShortName = sn; globalStaffId = st;
+        localStorage.setItem('ec_fullname', fn); 
+        localStorage.setItem('ec_shortname', sn);
+        localStorage.setItem('ec_staffid', st);
+        
+        document.getElementById('mainECNumber').value = ec;
+        localStorage.setItem('ec_current_number', ec);
+        
+        updateProfileUI(); 
         closeProfileModal();
+        alert("設定儲存成功！\n(備註：若需更新表格中已存在記錄的名稱，請點擊記錄旁的 ✏️ 修改並重新儲存)");
+    }
+
+    function updateMainECNumber() {
+        const ec = document.getElementById('mainECNumber').value.trim();
+        localStorage.setItem('ec_current_number', ec);
     }
 
     function updateProfileUI() {
         document.getElementById('displayFullName').innerText = globalFullName;
+        document.getElementById('displayStaffId').innerText = globalStaffId;
         document.getElementById('displayShortName').innerText = globalShortName;
         document.getElementById('profileCard').style.display = 'flex';
         document.getElementById('btnAddNew').disabled = false;
     }
 
-    // ========== 精靈基礎操作 ==========
-    function v(id) { return document.getElementById(id).value.trim(); }
+    // ========== 基礎操作 ==========
+    function v(id) { 
+        const el = document.getElementById(id);
+        if(!el) return '';
+        if(el.type === 'checkbox') return el.checked;
+        return el.value.trim(); 
+    }
     function s(id) { document.getElementById(id).classList.remove('hidden'); }
     function h(id) { document.getElementById(id).classList.add('hidden'); }
+    function sv(id, val) { 
+        const el = document.getElementById(id);
+        if(el) {
+            if(el.type === 'checkbox') el.checked = val;
+            else el.value = val;
+        }
+    }
 
     function openModal() {
         document.getElementById('wizardModal').style.display = 'flex';
+        editModeIndex = -1; // 重置編輯模式
         backToStep1(); 
     }
     function closeModal() { document.getElementById('wizardModal').style.display = 'none'; }
@@ -469,6 +555,8 @@
         document.getElementById('flow_purchase').reset();
         document.getElementById('flow_transport').reset();
         document.getElementById('flow_allowance').reset();
+        document.getElementById('allow_manual_holiday').checked = false;
+        
         document.querySelectorAll('.step-field:not(#q_pur_date):not(#q_trans_date):not(#q_allow_type)').forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.btn-submit').forEach(el => el.classList.add('hidden'));
         
@@ -482,14 +570,14 @@
         s('step1'); h('step2'); 
         h('flow_purchase'); h('flow_transport'); h('flow_allowance');
         resetAllForms();
-        document.getElementById('modalTitle').innerText = '選擇報銷類別';
+        document.getElementById('modalTitle').innerText = editModeIndex > -1 ? '✏️ 修改報銷記錄' : '選擇報銷類別';
     }
 
     function startFlow(flow) {
         h('step1'); s('step2');
-        if (flow === 'purchase') { document.getElementById('modalTitle').innerText = '🛍️ 填寫購買記錄'; s('flow_purchase'); checkPur(); }
-        else if (flow === 'transport') { document.getElementById('modalTitle').innerText = '🚕 填寫車費記錄'; s('flow_transport'); checkTrans(); }
-        else if (flow === 'allowance') { document.getElementById('modalTitle').innerText = '💰 填寫津貼記錄'; s('flow_allowance'); checkAllow(); }
+        if (flow === 'purchase') { document.getElementById('modalTitle').innerText = editModeIndex > -1 ? '✏️ 修改採購記錄' : '🛍️ 填寫採購記錄'; s('flow_purchase'); checkPur(); }
+        else if (flow === 'transport') { document.getElementById('modalTitle').innerText = editModeIndex > -1 ? '✏️ 修改交通記錄' : '🚕 填寫交通記錄'; s('flow_transport'); checkTrans(); }
+        else if (flow === 'allowance') { document.getElementById('modalTitle').innerText = editModeIndex > -1 ? '✏️ 修改津貼記錄' : '💰 填寫津貼記錄'; s('flow_allowance'); checkAllow(); }
     }
 
     function isHolidayOrWeekend(dateStr) {
@@ -498,6 +586,7 @@
         const day = d.getDay();
         if (day === 0 || day === 6) return true; 
 
+        // 香港公眾假期
         const hkHolidays = [
             '2024-01-01', '2024-02-10', '2024-02-12', '2024-02-13', '2024-03-29', '2024-03-30', '2024-04-01', '2024-04-04', '2024-05-01', '2024-05-15', '2024-06-10', '2024-07-01', '2024-09-18', '2024-10-01', '2024-10-11', '2024-12-25', '2024-12-26',
             '2025-01-01', '2025-01-29', '2025-01-30', '2025-01-31', '2025-04-04', '2025-04-18', '2025-04-19', '2025-04-21', '2025-05-01', '2025-05-05', '2025-05-31', '2025-07-01', '2025-10-01', '2025-10-07', '2025-10-29', '2025-12-25', '2025-12-26',
@@ -508,18 +597,18 @@
 
     // ========== 剝洋蔥檢查器 ==========
     function checkPur() {
-        ['q_pur_client', 'q_pur_proj', 'q_pur_sup', 'q_pur_item', 'q_pur_price', 'btn_pur_submit'].forEach(h);
+        ['q_pur_client', 'q_pur_proj', 'q_pur_sup', 'q_pur_item', 'q_pur_price', 'q_pur_remarks', 'btn_pur_submit'].forEach(h);
         if(!v('pur_date')) return;
         s('q_pur_client'); if(!v('pur_client')) return;
         if(v('pur_client') !== '公司') { s('q_pur_proj'); if(!v('pur_proj')) return; }
         s('q_pur_sup'); if(!v('pur_sup')) return;
         s('q_pur_item'); if(!v('pur_item')) return;
         s('q_pur_price'); if(!v('pur_price')) return;
-        s('btn_pur_submit');
+        s('q_pur_remarks'); s('btn_pur_submit');
     }
 
     function checkTrans() {
-        ['q_trans_client', 'q_trans_proj', 'q_trans_sup', 'q_trans_reason', 'q_trans_route', 'q_trans_price', 'btn_trans_submit'].forEach(h);
+        ['q_trans_client', 'q_trans_proj', 'q_trans_sup', 'q_trans_reason', 'q_trans_route', 'q_trans_price', 'q_trans_remarks', 'btn_trans_submit'].forEach(h);
         if(!v('trans_date')) return;
         s('q_trans_client'); if(!v('trans_client')) return;
         if(v('trans_client') !== '公司') { s('q_trans_proj'); if(!v('trans_proj')) return; }
@@ -527,11 +616,11 @@
         s('q_trans_reason'); if(!v('trans_reason')) return;
         s('q_trans_route'); if(!v('trans_route')) return;
         s('q_trans_price'); if(!v('trans_price')) return;
-        s('btn_trans_submit');
+        s('q_trans_remarks'); s('btn_trans_submit');
     }
 
     function checkAllow() {
-        ['q_allow_date', 'q_allow_client', 'q_allow_proj', 'q_allow_att_stage', 'q_allow_att_m1_grp', 'q_allow_att_m2_grp', 'q_allow_internet_amt', 'q_allow_internet_month_grp', 'q_allow_dental_amt', 'q_allow_dental_year_grp', 'q_allow_shift', 'q_allow_time', 'btn_allow_submit'].forEach(h);
+        ['q_allow_date', 'q_allow_client', 'q_allow_proj', 'q_allow_att_stage', 'q_allow_att_m1_grp', 'q_allow_att_m2_grp', 'q_allow_internet_amt', 'q_allow_internet_month_grp', 'q_allow_dental_amt', 'q_allow_dental_year_grp', 'q_allow_shift', 'q_allow_time', 'q_allow_remarks', 'btn_allow_submit', 'allow_manual_holiday_row'].forEach(h);
         
         if(!v('allow_type')) return;
         const type = v('allow_type');
@@ -563,16 +652,25 @@
             s('btn_allow_submit');
 
         } else {
-            // $50 or $400 通道
+            // $50 or $400
             s('q_allow_date'); 
             if(!v('allow_date')) { h('allow_date_badge'); return; }
 
+            const systemIsWknd = isHolidayOrWeekend(v('allow_date'));
+            const manualOverride = document.getElementById('allow_manual_holiday').checked;
+            const isWknd = systemIsWknd || manualOverride;
+            
+            if(!systemIsWknd) s('allow_manual_holiday_row');
+
             const badge = document.getElementById('allow_date_badge');
-            const isWknd = isHolidayOrWeekend(v('allow_date'));
-            badge.innerText = isWknd ? "🏖️ 系統自動偵測：此日期為星期六日或公眾假期" : "🏢 系統自動偵測：此日期為正常工作日 (一至五)";
-            badge.className = isWknd ? "bg-pur" : "bg-allow";
+            if (isWknd) {
+                badge.innerText = manualOverride ? "🏖️ 已手動標記：此日期為特別公眾假期" : "🏖️ 系統自動偵測：此日期為工作休息日或公眾假期";
+                badge.className = "bg-pur";
+            } else {
+                badge.innerText = "🏢 系統自動偵測：此日期為正常工作日 (一至五)";
+                badge.className = "bg-allow";
+            }
             badge.style.display = 'inline-block';
-            badge.style.marginTop = '10px';
             s('allow_date_badge');
 
             s('q_allow_client'); if(!v('allow_client')) return;
@@ -597,7 +695,9 @@
                 if(v('allow_start_time') && v('allow_start_loc') && v('allow_end_time') && v('allow_end_loc')) ready = true;
             }
 
-            if(ready) s('btn_allow_submit');
+            if(ready) {
+                s('q_allow_remarks'); s('btn_allow_submit');
+            }
         }
     }
 
@@ -611,6 +711,12 @@
         if(!timeStr) return -1;
         const [h, m] = timeStr.split(':').map(Number);
         return h * 60 + m;
+    }
+
+    function getFormData(prefix, keys) {
+        let data = {};
+        keys.forEach(k => data[k] = v(prefix + k));
+        return data;
     }
 
     function getAttData(stage) {
@@ -635,7 +741,11 @@
     }
 
     function pushRecord(rec) { 
-        records.push(rec); 
+        if (editModeIndex > -1) {
+            records[editModeIndex] = rec; // 覆蓋舊資料
+        } else {
+            records.push(rec); // 新增
+        }
         saveRecordsToLocal(); 
         renderTable(); 
         closeModal(); 
@@ -643,35 +753,46 @@
 
     function savePur() {
         const rawDate = v('pur_date'); const d = formatDate(rawDate);
-        const c = v('pur_client'); const p = v('pur_price');
+        const c = v('pur_client'); const p = v('pur_price'); const r = v('pur_remarks');
+        
+        let pStr = `${d}_${c}_${v('pur_item')}`;
+        if (r) pStr += `_${r}`;
+
         let record = { 
             catId: 1, rawDate: rawDate,
-            projectCode: c === '公司' ? 'N/A' : (v('pur_proj') || 'N/A'), supplier: v('pur_sup'), date: d, 
-            client: c, item: v('pur_item'), particular: `${d}_${c}_${v('pur_item')}`, price: p 
+            projectCode: c === '公司' ? 'NA' : (v('pur_proj') || 'NA'), supplier: v('pur_sup'),
+            client: c, item: v('pur_item'), particular: pStr, price: p,
+            formData: getFormData('pur_', ['date', 'client', 'proj', 'sup', 'item', 'price', 'remarks'])
         };
         pushRecord(record);
     }
 
     function saveTrans() {
         const rawDate = v('trans_date'); const d = formatDate(rawDate);
-        const c = v('trans_client'); const reason = v('trans_reason'); const route = v('trans_route');
+        const c = v('trans_client'); const reason = v('trans_reason'); const route = v('trans_route'); const r = v('trans_remarks');
         
+        let pStr = `${d}_${c}_${reason}_${route}_${globalShortName}_車資`;
+        if (r) pStr += `_${r}`;
+
         let record = { 
             catId: 2, rawDate: rawDate,
-            projectCode: c === '公司' ? 'N/A' : (v('trans_proj') || 'N/A'), supplier: v('trans_sup'), date: d, 
-            client: c, item: reason, particular: `${d}_${c}_${reason}_${route}_${globalShortName}_車資`, price: v('trans_price') 
+            projectCode: c === '公司' ? 'NA' : (v('trans_proj') || 'NA'), supplier: v('trans_sup'),
+            client: c, item: reason, particular: pStr, price: v('trans_price'),
+            formData: getFormData('trans_', ['date', 'client', 'proj', 'sup', 'reason', 'route', 'price', 'remarks'])
         };
         pushRecord(record);
     }
 
     function saveAllow() {
         const type = v('allow_type');
-        let record = { catId: 3, projectCode: 'N/A', supplier: globalFullName, client: '公司', item: '', particular: '', price: 0 };
+        let record = { 
+            catId: 3, projectCode: 'NA', supplier: globalFullName, client: '公司', item: '', particular: '', price: 0,
+            formData: getFormData('allow_', ['type', 'att_stage', 'att_m1', 'att_y1', 'att_m2', 'att_y2', 'internet_amt', 'internet_month', 'internet_year', 'dental_amt', 'dental_year', 'date', 'client', 'proj', 'shift', 'start_time', 'start_loc', 'end_time', 'end_loc', 'remarks', 'manual_holiday'])
+        };
         
         if (type === 'Attendance') {
             const stage = v('allow_att_stage'); const attData = getAttData(stage);
-            record.rawDate = attData.rawDate; record.date = attData.dateStr; 
-            record.price = 1000; record.item = stage;
+            record.rawDate = attData.rawDate; record.price = 1000; record.item = stage;
             record.particular = `${attData.dateStr}_公司_${globalShortName}_${attData.itemStr}_${stage}`;
             
         } else if (type === 'Internet') {
@@ -681,22 +802,23 @@
             const mNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             
             record.rawDate = `${y}-${String(m).padStart(2,'0')}-${String(lastDay.getDate()).padStart(2,'0')}`;
-            record.date = dStr; record.price = parseInt(amt); record.item = 'Internet Fee';
+            record.price = parseInt(amt); record.item = 'Internet Fee';
             record.particular = `${dStr}_公司_${globalShortName}_${mNames[m-1]} ${y}_Internet Fee`;
             
         } else if (type === 'Dental') {
             const amt = v('allow_dental_amt'); const y = v('allow_dental_year');
-            record.rawDate = `${y}-12-31`; record.date = '31/12'; record.price = parseInt(amt);
+            record.rawDate = `${y}-12-31`; record.price = parseInt(amt);
             record.item = 'Dental Allowance'; record.particular = `31/12_公司_${globalShortName}_${y}_Dental Allowance`;
 
         } else {
-            const rawDate = v('allow_date'); const d = formatDate(rawDate); const c = v('allow_client');
-            record.rawDate = rawDate; record.date = d; record.client = c;
-            record.projectCode = c === '公司' ? 'N/A' : (v('allow_proj') || 'N/A');
+            const rawDate = v('allow_date'); const d = formatDate(rawDate); const c = v('allow_client'); const r = v('allow_remarks');
+            record.rawDate = rawDate; record.client = c;
+            record.projectCode = c === '公司' ? 'NA' : (v('allow_proj') || 'NA');
             record.price = type === '50' ? 50 : 400;
             
             let pParts = [d, c, globalShortName];
-            const isWknd = isHolidayOrWeekend(rawDate); const shiftType = v('allow_shift');
+            const isWknd = isHolidayOrWeekend(rawDate) || v('allow_manual_holiday'); 
+            const shiftType = v('allow_shift');
             const sMins = getTimeMinutes(v('allow_start_time')); const eMins = getTimeMinutes(v('allow_end_time'));
             const isOvernight = eMins !== -1 && eMins <= 6 * 60; 
             
@@ -708,16 +830,16 @@
 
             if (type === '50') {
                 if (!isWknd) {
-                    if ((eMins < 18 * 60 + 30) && !isOvernight) return alert("錯誤：平日車費需於 18:30 後收工！");
-                    if (isOvernight && !confirm("💡 溫馨提示：過咗 00:00 收工，如實際車資高於 $50，建議去 In/out log 實報實銷。\n\n確定只申報 $50 嗎？")) return;
+                    if ((eMins < 18 * 60 + 30) && !isOvernight) return alert("錯誤：平日車費需於 18:30 後結束！");
+                    if (isOvernight && !confirm("系統提示：過咗 00:00 結束工作，如實際交通支出高於 $50，建議取消並前往 In/out log 實報實銷。\n\n確定繼續申報 $50 嗎？")) return;
                 } else {
-                    if ((sMins <= 8 * 60 || isOvernight) && !confirm("💡 溫馨提示：假日 08:00 前或 00:00 後收工，如實際車資高於 $50，建議實報實銷。\n\n確定只申報 $50 嗎？")) return;
+                    if ((sMins <= 8 * 60 || isOvernight) && !confirm("系統提示：假日 08:00 前到達或 00:00 後結束工作，如實際交通支出高於 $50，建議取消並實報實銷。\n\n確定繼續申報 $50 嗎？")) return;
                 }
             } else if (type === '400') {
-                if (duration < 4 * 60) return alert(`錯誤：工作需滿 4 小時！\n(目前相差約 ${(duration/60).toFixed(1)} 小時)`);
+                if (duration < 4 * 60) return alert(`錯誤：工作需滿 4 小時！\n(目前輸入時長約 ${(duration/60).toFixed(1)} 小時)`);
                 if (!isWknd) {
-                    if (shiftType === 'Morning' && sMins > 8 * 60) return alert("錯誤：必須為 08:00 或之前！");
-                    if (shiftType === 'Evening' && (sMins < 18 * 60 + 30 || (eMins < 22 * 60 + 30 && !isOvernight))) return alert("錯誤：必須 18:30 後開始，22:30 後收工！");
+                    if (shiftType === 'Morning' && sMins > 8 * 60) return alert("錯誤：必須於 08:00 或之前到達！");
+                    if (shiftType === 'Evening' && (sMins < 18 * 60 + 30 || (eMins < 22 * 60 + 30 && !isOvernight))) return alert("錯誤：必須 18:30 後開始，並於 22:30 後結束！");
                 }
             }
 
@@ -729,50 +851,236 @@
                 pParts.push(type === '400' ? "Working Out of office Allowance" : "Working Out of office Travel subsidy");
             }
 
-            const locStr = v('allow_start_loc') ? `${v('allow_start_loc')} > ${v('allow_end_loc')}` : `於 ${v('allow_end_loc')} 收工`;
+            const locStr = v('allow_start_loc') ? `${v('allow_start_loc')} > ${v('allow_end_loc')}` : `於 ${v('allow_end_loc')} 結束`;
             record.item = `${isWknd ? 'Rest Day' : 'Out of office'} $${type} (${locStr})`;
+            
+            if (r) pParts.push(r);
             record.particular = pParts.join('_');
         }
         pushRecord(record);
     }
 
+    // ========== 編輯與表格 ==========
+    function editRecord(index) {
+        const rec = records[index];
+        editModeIndex = index;
+        
+        document.getElementById('wizardModal').style.display = 'flex';
+        resetAllForms();
+        
+        if (rec.catId === 1) {
+            startFlow('purchase');
+            Object.keys(rec.formData).forEach(k => sv('pur_' + k, rec.formData[k]));
+            checkPur();
+        } else if (rec.catId === 2) {
+            startFlow('transport');
+            Object.keys(rec.formData).forEach(k => sv('trans_' + k, rec.formData[k]));
+            checkTrans();
+        } else if (rec.catId === 3) {
+            startFlow('allowance');
+            Object.keys(rec.formData).forEach(k => sv('allow_' + k, rec.formData[k]));
+            checkAllow();
+        }
+    }
+
     function renderTable() {
         const tbody = document.getElementById('tableBody'); tbody.innerHTML = ''; 
-        if (records.length === 0) return tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-state-icon">📄</div>尚未加入任何記錄<br>請點擊左上方「新增報銷」開始，資料會自動保存在瀏覽器。</td></tr>';
-        
-        const catLabels = {1: '<span class="category-badge bg-pur">購物</span>', 2: '<span class="category-badge bg-trans">車費</span>', 3: '<span class="category-badge bg-allow">津貼</span>'};
+        if (records.length === 0) return tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">📄</div>尚未加入任何記錄<br>請點擊左上方「新增報銷」開始，資料將自動保存於本地瀏覽器。</td></tr>';
         
         records.forEach((rec, index) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${catLabels[rec.catId]}</td>
+                <td style="font-weight:bold; color:var(--text-muted);">${index + 1}</td>
                 <td>${rec.projectCode}</td>
                 <td>${rec.supplier}</td>
-                <td style="font-weight:600;">${rec.date}</td>
-                <td>${rec.client}</td>
-                <td>${rec.item}</td>
                 <td><div class="particular-text">${rec.particular}</div></td>
-                <td style="font-weight:bold;">$${rec.price}</td>
-                <td><button class="delete-btn" onclick="deleteRecord(${index})" title="刪除" style="background:none; border:none;">🗑️</button></td>
+                <td style="font-weight:bold; color:#10b981;">$${parseFloat(rec.price).toFixed(2)}</td>
+                <td class="action-td">
+                    <button class="icon-btn edit-btn" onclick="editRecord(${index})" title="修改">✏️</button>
+                    <button class="icon-btn delete-btn" onclick="deleteRecord(${index})" title="刪除">🗑️</button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
     }
 
     function deleteRecord(index) { 
-        if(confirm("確定要刪除呢筆記錄？")) { 
+        if(confirm("確定要刪除此筆記錄嗎？")) { 
             records.splice(index, 1); 
             saveRecordsToLocal(); 
             renderTable(); 
         } 
     }
 
-    function exportCSV() {
-        if (records.length === 0) return alert("無記錄可以下載！請先加入記錄。");
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF項目編號,供應商,日期,客戶,項目,分項,價錢\n";
-        records.forEach(rec => csvContent += `"${rec.projectCode}","${rec.supplier}","${rec.date}","${rec.client}","${rec.item}","${rec.particular}",${rec.price}\n`);
-        const link = document.createElement("a"); link.setAttribute("href", encodeURI(csvContent)); link.setAttribute("download", `EC_Records_${globalShortName}_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    // ========== 匯出 ExcelJS ==========
+    async function exportExcel() {
+        if (records.length === 0) return alert("無記錄可供匯出！請先新增資料。");
+        
+        const btn = document.getElementById('btnExportExcel');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ 正在生成文件...';
+        btn.disabled = true;
+
+        try {
+            const ecNum = document.getElementById('mainECNumber').value.trim() || '';
+            let totalSum = 0;
+            records.forEach(r => totalSum += parseFloat(r.price));
+
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Expense Claim');
+
+            // 設置欄寬
+            sheet.getColumn('A').width = 14;
+            sheet.getColumn('B').width = 22;
+            sheet.getColumn('C').width = 24;
+            sheet.getColumn('D').width = 65;
+            sheet.getColumn('E').width = 18;
+
+            const borderThin = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            const borderThick = { top: {style:'medium'}, left: {style:'medium'}, bottom: {style:'medium'}, right: {style:'medium'} };
+            const alignCenter = { vertical: 'middle', horizontal: 'center' };
+            const alignRight = { vertical: 'middle', horizontal: 'right' };
+            const alignLeftWrap = { vertical: 'middle', horizontal: 'left', wrapText: true };
+            const fillGray = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAEAEA' } };
+
+            sheet.mergeCells('A1:E1');
+            const titleCell = sheet.getCell('A1');
+            titleCell.value = 'Expense Claim Form';
+            titleCell.font = { name: 'Arial', size: 20, bold: true };
+            titleCell.alignment = alignCenter;
+            titleCell.border = borderThick;
+            sheet.getRow(1).height = 35;
+
+            sheet.getRow(2).height = 30;
+            sheet.getRow(3).height = 30;
+            sheet.getRow(4).height = 30;
+
+            sheet.getCell('A2').value = '員工姓名：';
+            sheet.getCell('A2').alignment = alignCenter;
+            sheet.getCell('B2').value = globalFullName;
+            sheet.getCell('B2').alignment = alignCenter;
+            
+            sheet.getCell('A3').value = '員工編號：';
+            sheet.getCell('A3').alignment = alignCenter;
+            sheet.getCell('B3').value = globalStaffId;
+            sheet.getCell('B3').alignment = alignCenter;
+
+            sheet.getCell('A4').value = '簽收日：';
+            sheet.getCell('A4').alignment = alignCenter;
+            sheet.getCell('B4').value = '';
+
+            // 留白蓋印區
+            sheet.mergeCells('C2:D4');
+            sheet.getCell('C2').value = '';
+
+            sheet.getCell('E2').value = ecNum;
+            sheet.getCell('E2').alignment = alignCenter;
+            sheet.getCell('E2').fill = fillGray;
+            
+            sheet.getCell('E3').value = 'Total Amount';
+            sheet.getCell('E3').alignment = alignCenter;
+            sheet.getCell('E3').font = { bold: true };
+
+            sheet.getCell('E4').value = totalSum;
+            sheet.getCell('E4').numFmt = '"$ "#,##0.00';
+            sheet.getCell('E4').alignment = alignRight;
+            sheet.getCell('E4').font = { bold: true, size: 14 };
+
+            sheet.getCell('A2').border = { top: {style:'medium'}, left: {style:'medium'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            sheet.getCell('B2').border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            sheet.getCell('C2').border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'thin'} };
+            sheet.getCell('E2').border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'medium'} };
+
+            sheet.getCell('A3').border = { top: {style:'thin'}, left: {style:'medium'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            sheet.getCell('B3').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+            sheet.getCell('E3').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'medium'} };
+
+            sheet.getCell('A4').border = { top: {style:'thin'}, left: {style:'medium'}, bottom: {style:'medium'}, right: {style:'thin'} };
+            sheet.getCell('B4').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'thin'} };
+            sheet.getCell('E4').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'medium'} };
+
+            sheet.getRow(5).height = 10;
+
+            const headers = ['編號', '項目編號', '供應商', '分項', '價錢'];
+            headers.forEach((h, i) => {
+                const cell = sheet.getCell(6, i + 1);
+                cell.value = h;
+                cell.font = { bold: true };
+                cell.alignment = alignCenter;
+                cell.border = borderThin;
+            });
+            sheet.getRow(6).height = 22;
+
+            let currentRow = 7;
+            records.forEach((rec, idx) => {
+                const row = sheet.getRow(currentRow);
+                
+                row.getCell(1).value = idx + 1;
+                row.getCell(1).alignment = alignCenter;
+                
+                row.getCell(2).value = rec.projectCode;
+                row.getCell(2).alignment = alignCenter;
+                
+                row.getCell(3).value = rec.supplier;
+                row.getCell(3).alignment = alignCenter;
+                
+                // 設定文字換行 (Wrap Text)
+                row.getCell(4).value = rec.particular;
+                row.getCell(4).alignment = alignLeftWrap;
+                
+                row.getCell(5).value = parseFloat(rec.price);
+                row.getCell(5).numFmt = '$#,##0.00';
+                row.getCell(5).alignment = alignRight;
+
+                for(let i=1; i<=5; i++) {
+                    row.getCell(i).border = borderThin;
+                }
+                
+                // 動態計算行高，保證文字不被截斷
+                const charCount = rec.particular.length;
+                row.height = Math.max(22, Math.ceil(charCount / 30) * 16);
+                
+                currentRow++;
+            });
+
+            // 設定列印邊界 (0.19685 英吋 = 0.5 厘米)
+            const marginValue = 0.19685;
+            sheet.pageSetup.margins = {
+                left: marginValue, right: marginValue,
+                top: marginValue, bottom: marginValue,
+                header: marginValue, footer: marginValue
+            };
+            
+            // 設定頁面置中與縮放
+            sheet.pageSetup.horizontalCentered = true;
+            sheet.pageSetup.fitToPage = true;
+            sheet.pageSetup.fitToWidth = 1;
+            sheet.pageSetup.fitToHeight = 0;
+            sheet.pageSetup.paperSize = 9;
+
+            // 頁尾設定
+            const displayECNum = ecNum ? ecNum : '未提供';
+            const footerCenterText = `${globalFullName} - ${displayECNum} - Page &P`;
+            const footerRightText = `F-C001 - Internal Use`;
+            sheet.headerFooter.oddFooter = `&C${footerCenterText}&R${footerRightText}`;
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safeEC = ecNum ? `_${ecNum}` : '';
+            a.download = `Expense_Claim_${globalShortName}${safeEC}.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+        } catch(err) {
+            console.error(err);
+            alert("匯出 Excel 發生錯誤，請聯絡開發人員。");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 </script>
 
