@@ -471,7 +471,7 @@
                 <div class="step-field hidden" id="q_pur_client"><label id="label_pur_client">🏢 客戶名稱</label><input type="text" id="pur_client" placeholder="例: PLB / AECOM" oninput="checkPur()"></div>
                 <div class="step-field hidden" id="q_pur_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="pur_proj" placeholder="例: QTN260522-01" oninput="checkPur()"><span id="pur_proj_hint" style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">* 客戶支出必填，格式必須為 QTNYYMMDD-NN</span></div>
                 <div class="step-field hidden" id="q_pur_sup"><label>🏪 供應商 (Supplier)</label><input type="text" id="pur_sup" placeholder="例: Taobao / HKTV Mall" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_category"><label>🏷️ 支出報銷類別</label><select id="pur_category" onchange="markCategoryTouched('pur_')" oninput="checkPur()"></select></div>
+                <div class="step-field hidden" id="q_pur_category"><label>🏷️ 支出報銷類別</label><select id="pur_category" onchange="handleCategoryChange('pur_')"></select></div>
                 
                 <div class="step-field optional hidden" id="q_pur_activity"><label>🎯 具體活動名稱 (非必填)</label><input type="text" id="pur_activity" placeholder="例: 飲水工作坊" oninput="checkPur()"></div>
                 
@@ -494,7 +494,7 @@
                 <div class="step-field hidden" id="q_trans_client"><label id="label_trans_client">🏢 客戶名稱</label><input type="text" id="trans_client" placeholder="例: PLB / AECOM" oninput="checkTrans()"></div>
                 <div class="step-field hidden" id="q_trans_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="trans_proj" placeholder="例: QTN260522-01" oninput="checkTrans()"><span id="trans_proj_hint" style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">* 客戶支出必填，格式必須為 QTNYYMMDD-NN</span></div>
                 <div class="step-field hidden" id="q_trans_sup"><label>🚌 交通工具 (Supplier)</label><input type="text" id="trans_sup" placeholder="例: MTR / KMB / Taxi" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_category"><label>🏷️ 支出報銷類別</label><select id="trans_category" onchange="markCategoryTouched('trans_')" oninput="checkTrans()"></select></div>
+                <div class="step-field hidden" id="q_trans_category"><label>🏷️ 支出報銷類別</label><select id="trans_category" onchange="handleCategoryChange('trans_')"></select></div>
                 
                 <div class="step-field optional hidden" id="q_trans_activity"><label>🎯 具體活動名稱 (非必填)</label><input type="text" id="trans_activity" placeholder="例: 飲水工作坊" oninput="checkTrans()"></div>
 
@@ -523,7 +523,7 @@
                         <option value="400">$400 超時工作津貼</option>
                     </select>
                 </div>
-                <div class="step-field hidden" id="q_allow_category"><label>🏷️ 支出報銷類別</label><select id="allow_category" onchange="markCategoryTouched('allow_')" oninput="checkAllow()"></select></div>
+                <div class="step-field hidden" id="q_allow_category"><label>🏷️ 支出報銷類別</label><select id="allow_category" onchange="handleCategoryChange('allow_')"></select></div>
 
                 <!-- 分支 A: 全勤專用 -->
                 <div class="step-field hidden" id="q_allow_att_stage">
@@ -1211,6 +1211,13 @@
     function markCategoryTouched(prefix) {
         const el = document.getElementById(prefix + 'category');
         if (el) el.dataset.touched = 'true';
+    }
+
+    function handleCategoryChange(prefix) {
+        markCategoryTouched(prefix);
+        if (prefix === 'pur_') checkPur();
+        else if (prefix === 'trans_') checkTrans();
+        else if (prefix === 'allow_') checkAllow();
     }
 
     function setCategoryFieldLocked(prefix, locked) {
