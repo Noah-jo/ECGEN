@@ -772,7 +772,13 @@
     }
     function isValidProjectCode(value) {
         if (!value) return true;
-        return /^QTN\d{6}-\d{2}$/i.test(String(value).trim());
+        const match = /^QTN(\d{2})(\d{2})(\d{2})-\d{2}$/i.exec(String(value).trim());
+        if (!match) return false;
+        const year = 2000 + Number(match[1]);
+        const month = Number(match[2]);
+        const day = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
     }
     function normalizeProjectCode(value) {
         return String(value || '').trim().toUpperCase();
@@ -842,20 +848,11 @@
         document.getElementById('summarySortDesc').innerText = getSortDescription();
     }
 
-    // ========== 排序功能 ==========
-    function sortRecords(method) {
-        if (records.length === 0) return;
-        if (sortState.method === method) {
-            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
-        } else {
-            sortState.method = method;
-            sortState.direction = 'asc';
-        }
-
+    function sortRecordsInPlace() {
         records.sort((a, b) => {
             let result = 0;
 
-            if (method === 'date') {
+            if (sortState.method === 'date') {
                 result = safeDateValue(a.rawDate) - safeDateValue(b.rawDate);
             } else {
                 result = (Number(a.catId) || 0) - (Number(b.catId) || 0);
@@ -868,10 +865,20 @@
 
             return sortState.direction === 'asc' ? result : -result;
         });
+    }
 
-        saveRecordsToLocal();
-        updateSortUI();
+    // ========== 排序功能 ==========
+    function sortRecords(method) {
+        if (records.length === 0) return;
+        if (sortState.method === method) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.method = method;
+            sortState.direction = 'asc';
+        }
+
         renderTable();
+        saveRecordsToLocal();
     }
 
     function clearAllRecords() {
@@ -1290,12 +1297,19 @@
         return explicitCategory;
     }
 
+    function updateMissingProjectCodeRemark(remarks, shouldFlag) {
+        const marker = '尚欠Project Code';
+        const parts = String(remarks || '')
+            .split(/\s+\/\s+/)
+            .map(part => part.trim())
+            .filter(part => part && part !== marker);
+        if (shouldFlag) parts.push(marker);
+        return parts.join(' / ');
+    }
+
     function buildRecordBase(catId, formData, remarks = '') {
         const shouldFlagMissingProjectCode = (catId === 1 || catId === 2) && formData?.scope === 'customer' && !normalizeProjectCode(formData?.proj || '');
-        const normalizedRemarks = String(remarks || '').trim();
-        const finalRemarks = shouldFlagMissingProjectCode
-            ? (normalizedRemarks.includes('尚欠Project Code') ? normalizedRemarks : (normalizedRemarks ? `${normalizedRemarks} / 尚欠Project Code` : '尚欠Project Code'))
-            : normalizedRemarks;
+        const finalRemarks = updateMissingProjectCodeRemark(remarks, shouldFlagMissingProjectCode);
         if (formData) formData.remarks = finalRemarks;
         return {
             catId,
@@ -1324,12 +1338,11 @@
             category: legacyCategoryMap[cloned.category] || cloned.category || cloned.formData?.category || ''
         };
         const shouldFlagMissingProjectCode = (cloned.catId === 1 || cloned.catId === 2) && normalizedFormData.scope === 'customer' && !normalizedFormData.proj;
-        const normalizedRemarks = String(remarks || '').trim();
-        cloned.remarks = shouldFlagMissingProjectCode
-            ? (normalizedRemarks.includes('尚欠Project Code') ? normalizedRemarks : (normalizedRemarks ? `${normalizedRemarks} / 尚欠Project Code` : '尚欠Project Code'))
-            : normalizedRemarks;
+        cloned.remarks = updateMissingProjectCodeRemark(remarks, shouldFlagMissingProjectCode);
+        normalizedFormData.remarks = cloned.remarks;
         cloned.category = resolveCategoryValue(cloned.catId, normalizedFormData, cloned);
         cloned.projectCode = normalizedFormData.proj;
+        cloned.formData = normalizedFormData;
         return cloned;
     }
 
@@ -1548,6 +1561,7 @@
 
     function renderTable() {
         records = records.map(normalizeRecord);
+        sortRecordsInPlace();
         const tbody = document.getElementById('tableBody'); tbody.innerHTML = ''; 
         updateSummary();
         updateSortUI();
