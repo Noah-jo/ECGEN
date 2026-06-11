@@ -657,7 +657,8 @@
     const HK_PUBLIC_HOLIDAYS = {
         2024: ['2024-01-01', '2024-02-10', '2024-02-12', '2024-02-13', '2024-03-29', '2024-03-30', '2024-04-01', '2024-04-04', '2024-05-01', '2024-05-15', '2024-06-10', '2024-07-01', '2024-09-18', '2024-10-01', '2024-10-11', '2024-12-25', '2024-12-26'],
         2025: ['2025-01-01', '2025-01-29', '2025-01-30', '2025-01-31', '2025-04-04', '2025-04-18', '2025-04-19', '2025-04-21', '2025-05-01', '2025-05-05', '2025-05-31', '2025-07-01', '2025-10-01', '2025-10-07', '2025-10-29', '2025-12-25', '2025-12-26'],
-        2026: ['2026-01-01', '2026-02-17', '2026-02-18', '2026-02-19', '2026-04-03', '2026-04-04', '2026-04-06', '2026-04-07', '2026-05-01', '2026-05-24', '2026-05-25', '2026-06-19', '2026-07-01', '2026-09-26', '2026-10-01', '2026-10-26', '2026-12-25', '2026-12-26']
+        2026: ['2026-01-01', '2026-02-17', '2026-02-18', '2026-02-19', '2026-04-03', '2026-04-04', '2026-04-06', '2026-04-07', '2026-05-01', '2026-05-25', '2026-06-19', '2026-07-01', '2026-09-26', '2026-10-01', '2026-10-19', '2026-12-25', '2026-12-26'],
+        2027: ['2027-01-01', '2027-02-06', '2027-02-08', '2027-02-09', '2027-03-26', '2027-03-27', '2027-03-29', '2027-04-05', '2027-05-01', '2027-05-13', '2027-06-09', '2027-07-01', '2027-09-16', '2027-10-01', '2027-10-08', '2027-12-25', '2027-12-27']
     };
     
     let globalFullName = '';
@@ -970,6 +971,15 @@
         return Boolean(HK_PUBLIC_HOLIDAYS[year]);
     }
 
+    function isManualHolidayOverride(dateStr) {
+        const checkbox = document.getElementById('allow_manual_holiday');
+        if (hasHolidayCoverage(dateStr)) {
+            if (checkbox) checkbox.checked = false;
+            return false;
+        }
+        return Boolean(checkbox?.checked);
+    }
+
     // ========== 剝洋蔥檢查器 ==========
     function checkPur() {
         ['q_pur_scope', 'q_pur_client', 'q_pur_proj', 'q_pur_sup', 'q_pur_category', 'q_pur_activity', 'q_pur_item', 'q_pur_price', 'q_pur_remarks', 'btn_pur_submit'].forEach(h);
@@ -1077,11 +1087,13 @@
             if(!v('allow_date')) { h('allow_date_badge'); return; }
 
             const systemIsWknd = isHolidayOrWeekend(v('allow_date'));
-            const manualOverride = document.getElementById('allow_manual_holiday').checked;
-            const isWknd = systemIsWknd || manualOverride;
             const hasCoverage = hasHolidayCoverage(v('allow_date'));
+            const manualCheckbox = document.getElementById('allow_manual_holiday');
+            if (hasCoverage) manualCheckbox.checked = false;
+            const manualOverride = isManualHolidayOverride(v('allow_date'));
+            const isWknd = systemIsWknd || manualOverride;
             
-            if(!systemIsWknd) s('allow_manual_holiday_row');
+            if(!systemIsWknd && !hasCoverage) s('allow_manual_holiday_row');
 
             const badge = document.getElementById('allow_date_badge');
             if (isWknd) {
@@ -1110,17 +1122,16 @@
 
             s('q_allow_time');
             ['f_allow_start_time', 'f_allow_start_loc', 'f_allow_end_time', 'f_allow_end_loc'].forEach(h);
-            s('f_allow_end_time'); s('f_allow_end_loc'); 
 
             let ready = false;
             if (type === '50' && !isWknd) {
-                s('f_allow_start_time');
-                if(v('allow_start_time') && v('allow_end_time') && v('allow_end_loc')) ready = true;
+                s('f_allow_start_time'); s('f_allow_end_time');
+                if(v('allow_start_time') && v('allow_end_time')) ready = true;
             } else if (type === '50' && isWknd) {
                 s('f_allow_start_time');
-                if(v('allow_start_time') && v('allow_end_time') && v('allow_end_loc')) ready = true;
+                if(v('allow_start_time')) ready = true;
             } else { 
-                s('f_allow_start_time'); s('f_allow_start_loc');
+                s('f_allow_start_time'); s('f_allow_start_loc'); s('f_allow_end_time'); s('f_allow_end_loc');
                 if(v('allow_start_time') && v('allow_start_loc') && v('allow_end_time') && v('allow_end_loc')) ready = true;
             }
 
@@ -1401,24 +1412,32 @@
             if (act) pParts.push(act);
             pParts.push(globalShortName);
             
-            const isWknd = isHolidayOrWeekend(rawDate) || v('allow_manual_holiday'); 
+            const isWknd = isHolidayOrWeekend(rawDate) || isManualHolidayOverride(rawDate);
             const shiftType = v('allow_shift');
-            const sMins = getTimeMinutes(v('allow_start_time')); const eMins = getTimeMinutes(v('allow_end_time'));
-            const isOvernight = eMins !== -1 && eMins <= 6 * 60; 
+            const startTime = v('allow_start_time');
+            const endTime = type === '50' && isWknd ? '' : v('allow_end_time');
+            const startLoc = type === '50' ? '' : v('allow_start_loc');
+            const endLoc = type === '50' ? '' : v('allow_end_loc');
+            allowanceFormData.start_time = startTime;
+            allowanceFormData.end_time = endTime;
+            allowanceFormData.start_loc = startLoc;
+            allowanceFormData.end_loc = endLoc;
+            const sMins = getTimeMinutes(startTime); const eMins = getTimeMinutes(endTime);
+            const isOvernight = sMins !== -1 && eMins !== -1 && eMins < sMins;
             
             let duration = 0;
             if (sMins !== -1 && eMins !== -1) {
-                let calcE = eMins; if (calcE < sMins || isOvernight) calcE += 24 * 60;
+                let calcE = eMins; if (isOvernight) calcE += 24 * 60;
                 duration = calcE - sMins;
             }
 
             if (type === '50') {
                 if (!isWknd) {
-                    if (sMins === -1) return alert("錯誤：請輸入外出時間！");
-                    if ((eMins < 18 * 60 + 30) && !isOvernight) return alert("錯誤：平日車費需於 18:30 後結束！");
-                    if (isOvernight && !confirm("系統提示：過咗 00:00 結束工作，如實際交通支出高於 $50，建議取消並前往 In/out log 實報實銷。\n\n確定繼續申報 $50 嗎？")) return;
+                    if (sMins === -1 || eMins === -1) return alert("錯誤：平日 $50 Travel subsidy 必須填寫上班及收工時間！");
+                    const effectiveEndMins = eMins + (isOvernight ? 24 * 60 : 0);
+                    if (effectiveEndMins < 22 * 60 + 30) return alert("錯誤：平日 $50 Travel subsidy 的收工時間必須為 22:30 或之後！");
                 } else {
-                    if ((sMins <= 8 * 60 || isOvernight) && !confirm("系統提示：假日 08:00 前到達或 00:00 後結束工作，如實際交通支出高於 $50，建議取消並實報實銷。\n\n確定繼續申報 $50 嗎？")) return;
+                    if (sMins === -1) return alert("錯誤：星期六、日或公眾假期的 $50 Travel subsidy 必須填寫上班時間！");
                 }
             } else if (type === '400') {
                 if (duration < 4 * 60) return alert(`錯誤：工作需滿 4 小時！\n(目前輸入時長約 ${(duration/60).toFixed(1)} 小時)`);
@@ -1428,7 +1447,9 @@
                 }
             }
 
-            const timeStr = v('allow_start_time') ? `${v('allow_start_time')}-${v('allow_end_time')}` : v('allow_end_time');
+            const timeStr = startTime && endTime
+                ? `${startTime}-${endTime}`
+                : (startTime ? `${startTime}_Start work` : endTime);
             pParts.push(timeStr);
             if (isWknd) {
                 pParts.push("Work on rest day"); pParts.push(type === '400' ? "Allowance" : "Travel subsidy");
@@ -1436,8 +1457,8 @@
                 pParts.push(type === '400' ? "Working Out of office Allowance" : "Working Out of office Travel subsidy");
             }
 
-            const locStr = v('allow_start_loc') ? `${v('allow_start_loc')} > ${v('allow_end_loc')}` : `於 ${v('allow_end_loc')} 結束`;
-            record.item = `${isWknd ? 'Rest Day' : 'Out of office'} $${type} (${locStr})`;
+            const locStr = startLoc ? `${startLoc} > ${endLoc}` : '';
+            record.item = `${isWknd ? 'Rest Day' : 'Out of office'} $${type}${locStr ? ` (${locStr})` : ''}`;
             
             record.particular = pParts.join('_');
         }
