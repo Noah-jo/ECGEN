@@ -1001,13 +1001,12 @@
         if (v('pur_proj') && !isValidProjectCode(v('pur_proj'))) return;
         if(!isCompany && !v('pur_client')) return;
         s('q_pur_sup'); if(!v('pur_sup')) return;
-        s('q_pur_category');
-        setCategoryFieldLocked('pur_', !isCompany);
         if (!isCompany) {
             sv('pur_category', '');
-        } else if (v('pur_proj')) {
-            if (document.getElementById('pur_category').dataset.touched !== 'true') sv('pur_category', '');
+            setCategoryFieldLocked('pur_', true);
         } else {
+            s('q_pur_category');
+            setCategoryFieldLocked('pur_', false);
             setSuggestedCategory('pur_', inferPurchaseCategory());
         }
         s('q_pur_activity');
