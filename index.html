@@ -197,6 +197,8 @@
         .col-number { font-weight: 700; color: #475569; }
         .col-amount { font-weight: 700; color: #0f766e; }
         .supplier-text { font-weight: 600; color: #0f172a; }
+        .category-text { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; background: rgba(15, 118, 110, 0.08); color: #115e59; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .remarks-text { color: #64748b; line-height: 1.45; }
         
         .action-td { display: flex; gap: 8px; justify-content: center; }
         .icon-btn { background: rgba(255,255,255,0.95); border: 1px solid rgba(148,163,184,0.2); cursor: pointer; font-size: 18px; padding: 8px; border-radius: 12px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
@@ -365,16 +367,17 @@
         <table>
             <thead>
                 <tr>
-                    <th width="6%">編號</th>
                     <th width="12%">項目編號</th>
-                    <th width="16%">供應商</th>
-                    <th width="44%">分項 (Particular)</th>
-                    <th width="10%">價錢</th>
-                    <th width="12%" style="text-align: center;">操作</th>
+                    <th width="16%">支出報銷類別</th>
+                    <th width="14%">供應商</th>
+                    <th width="28%">分項</th>
+                    <th width="18%">備註</th>
+                    <th width="12%">付款金額</th>
+                    <th width="10%" style="text-align: center;">操作</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
-                <tr><td colspan="6" class="empty-state">
+                <tr><td colspan="7" class="empty-state">
                     <div class="empty-state-icon">📄</div>
                     尚未加入任何記錄<br>請點擊左上方「新增報銷」開始，資料將自動保存於本地瀏覽器。
                 </td></tr>
@@ -453,9 +456,11 @@
             <!-- 流程 1：採購 -->
             <form id="flow_purchase" class="hidden" onsubmit="event.preventDefault(); savePur();">
                 <div class="step-field" id="q_pur_date"><label>📅 費用發生日期</label><input type="date" id="pur_date" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_client"><label>🏢 相關客戶/公司 (內部請填「公司」)</label><input type="text" id="pur_client" placeholder="例: 公司 / PLB / AECOM" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="pur_proj" placeholder="例: QTN251020-01 或 NA" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_scope"><label>🏢 支出對象</label><select id="pur_scope" oninput="checkPur()" onchange="checkPur()"><option value="">-- 請選擇 --</option><option value="company">公司支出</option><option value="customer">客戶支出</option></select></div>
+                <div class="step-field hidden" id="q_pur_client"><label id="label_pur_client">🏢 客戶名稱</label><input type="text" id="pur_client" placeholder="例: PLB / AECOM" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="pur_proj" placeholder="例: QTN260522-01" oninput="checkPur()"><span id="pur_proj_hint" style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">* 客戶支出必填，格式必須為 QTNYYMMDD-NN</span></div>
                 <div class="step-field hidden" id="q_pur_sup"><label>🏪 供應商 (Supplier)</label><input type="text" id="pur_sup" placeholder="例: Taobao / HKTV Mall" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_category"><label>🏷️ 支出報銷類別</label><select id="pur_category" onchange="markCategoryTouched('pur_')" oninput="checkPur()"></select></div>
                 
                 <div class="step-field optional hidden" id="q_pur_activity"><label>🎯 具體活動名稱 (非必填)</label><input type="text" id="pur_activity" placeholder="例: 飲水工作坊" oninput="checkPur()"></div>
                 
@@ -474,9 +479,11 @@
             <!-- 流程 2：車費 -->
             <form id="flow_transport" class="hidden" onsubmit="event.preventDefault(); saveTrans();">
                 <div class="step-field" id="q_trans_date"><label>📅 費用發生日期</label><input type="date" id="trans_date" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_client"><label>🏢 相關客戶/公司 (內部請填「公司」)</label><input type="text" id="trans_client" placeholder="例: 公司 / PLB" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="trans_proj" placeholder="例: QTN251020-01 或 NA" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_scope"><label>🏢 支出對象</label><select id="trans_scope" oninput="checkTrans()" onchange="checkTrans()"><option value="">-- 請選擇 --</option><option value="company">公司支出</option><option value="customer">客戶支出</option></select></div>
+                <div class="step-field hidden" id="q_trans_client"><label id="label_trans_client">🏢 客戶名稱</label><input type="text" id="trans_client" placeholder="例: PLB / AECOM" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="trans_proj" placeholder="例: QTN260522-01" oninput="checkTrans()"><span id="trans_proj_hint" style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">* 客戶支出必填，格式必須為 QTNYYMMDD-NN</span></div>
                 <div class="step-field hidden" id="q_trans_sup"><label>🚌 交通工具 (Supplier)</label><input type="text" id="trans_sup" placeholder="例: MTR / KMB / Taxi" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_category"><label>🏷️ 支出報銷類別</label><select id="trans_category" onchange="markCategoryTouched('trans_')" oninput="checkTrans()"></select></div>
                 
                 <div class="step-field optional hidden" id="q_trans_activity"><label>🎯 具體活動名稱 (非必填)</label><input type="text" id="trans_activity" placeholder="例: 飲水工作坊" oninput="checkTrans()"></div>
 
@@ -505,6 +512,7 @@
                         <option value="400">$400 超時工作津貼</option>
                     </select>
                 </div>
+                <div class="step-field hidden" id="q_allow_category"><label>🏷️ 支出報銷類別</label><select id="allow_category" onchange="markCategoryTouched('allow_')" oninput="checkAllow()"></select></div>
 
                 <!-- 分支 A: 全勤專用 -->
                 <div class="step-field hidden" id="q_allow_att_stage">
@@ -595,7 +603,7 @@
                 </div>
 
                 <div class="step-field hidden" id="q_allow_client"><label>🏢 相關客戶/公司 (內部請填「公司」)</label><input type="text" id="allow_client" placeholder="例: 公司 / BOC Dinner Event" oninput="checkAllow()"></div>
-                <div class="step-field hidden" id="q_allow_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="allow_proj" placeholder="例: QTN251020-01 或 NA" oninput="checkAllow()"></div>
+                <div class="step-field hidden" id="q_allow_proj"><label>📁 項目編號 (Project Code)</label><input type="text" id="allow_proj" placeholder="例: QTN260522-01" oninput="checkAllow()"><span style="font-size:11px; color:var(--text-muted); display:block; margin-top:4px;">* 可留空；如有填寫，格式必須為 QTNYYMMDD-NN</span></div>
                 
                 <div class="step-field optional hidden" id="q_allow_activity"><label>🎯 具體活動名稱 (非必填)</label><input type="text" id="allow_activity" placeholder="例: Annual Dinner" oninput="checkAllow()"></div>
 
@@ -635,6 +643,17 @@
     let editModeIndex = -1; // 記錄正在編輯邊一條
     const currentYear = new Date().getFullYear();
     const sortState = { method: 'date', direction: 'asc' };
+    const OFFICIAL_CATEGORIES = [
+        'Accounting Fee', 'Advertising', 'Bank Charges', 'Bank Interest', 'Bank Transfer',
+        'Business Meal', 'Casual Labour', 'China Factory', 'Computer Expenses', 'Consultant Fee',
+        'Deposit', 'Dividend', 'Donation', 'Electricity & Water', 'Entertainment',
+        'Fixed Assets', 'Fixed Assets - Truck', 'Fixed Assets - Van', 'Insurance', 'License',
+        'Loan', 'Miscellaneous', 'Money Exchange', 'Office Equipment', 'Office Supplies',
+        'Others', 'Payroll', 'Petty Cash', 'POS Sales', 'Printing and Stationeries',
+        'Profit Tax', 'Rents and Rates', 'Repair and Maintenance', 'Sanitary Expenses', 'Software',
+        'Staff Allowance', 'Staff Messing', 'Telephone & Internet Service', 'Time Deposit',
+        'Tools and Equipment', 'Transportation'
+    ];
     const HK_PUBLIC_HOLIDAYS = {
         2024: ['2024-01-01', '2024-02-10', '2024-02-12', '2024-02-13', '2024-03-29', '2024-03-30', '2024-04-01', '2024-04-04', '2024-05-01', '2024-05-15', '2024-06-10', '2024-07-01', '2024-09-18', '2024-10-01', '2024-10-11', '2024-12-25', '2024-12-26'],
         2025: ['2025-01-01', '2025-01-29', '2025-01-30', '2025-01-31', '2025-04-04', '2025-04-18', '2025-04-19', '2025-04-21', '2025-05-01', '2025-05-05', '2025-05-31', '2025-07-01', '2025-10-01', '2025-10-07', '2025-10-29', '2025-12-25', '2025-12-26'],
@@ -647,6 +666,7 @@
 
     // 初始化
     window.onload = function() {
+        populateCategorySelects();
         document.getElementById('allow_att_y1').value = currentYear;
         document.getElementById('allow_att_y2').value = currentYear;
         document.getElementById('allow_internet_year').value = currentYear;
@@ -671,8 +691,9 @@
         if (savedRecords) {
             try {
                 const parsed = JSON.parse(savedRecords);
-                records = Array.isArray(parsed) ? parsed : [];
-                if (!Array.isArray(parsed)) localStorage.removeItem('ec_records_data');
+                records = Array.isArray(parsed) ? parsed.map(normalizeRecord) : [];
+                if (Array.isArray(parsed)) saveRecordsToLocal();
+                else localStorage.removeItem('ec_records_data');
             } catch (err) {
                 console.warn('Invalid ec_records_data in localStorage, clearing cache.', err);
                 records = [];
@@ -706,6 +727,13 @@
     }
     function isInternalClient(value) {
         return ['公司', 'internal', 'company', '內部', '内部'].includes(normalizeClientName(value));
+    }
+    function isValidProjectCode(value) {
+        if (!value) return true;
+        return /^QTN\d{6}-\d{2}$/i.test(String(value).trim());
+    }
+    function normalizeProjectCode(value) {
+        return String(value || '').trim().toUpperCase();
     }
     function getSortLabel() {
         const labels = { date: '日期', category: '類別' };
@@ -898,6 +926,10 @@
         document.getElementById('flow_transport').reset();
         document.getElementById('flow_allowance').reset();
         document.getElementById('allow_manual_holiday').checked = false;
+        ['pur_category', 'trans_category', 'allow_category'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.dataset.touched = 'false';
+        });
         
         document.querySelectorAll('.step-field:not(#q_pur_date):not(#q_trans_date):not(#q_allow_type)').forEach(el => el.classList.add('hidden'));
         ['btn_pur_submit', 'btn_trans_submit', 'btn_allow_submit'].forEach(h);
@@ -940,11 +972,34 @@
 
     // ========== 剝洋蔥檢查器 ==========
     function checkPur() {
-        ['q_pur_client', 'q_pur_proj', 'q_pur_sup', 'q_pur_activity', 'q_pur_item', 'q_pur_price', 'q_pur_remarks', 'btn_pur_submit'].forEach(h);
+        ['q_pur_scope', 'q_pur_client', 'q_pur_proj', 'q_pur_sup', 'q_pur_category', 'q_pur_activity', 'q_pur_item', 'q_pur_price', 'q_pur_remarks', 'btn_pur_submit'].forEach(h);
         if(!v('pur_date')) return;
-        s('q_pur_client'); if(!v('pur_client')) return;
-        if(!isInternalClient(v('pur_client'))) { s('q_pur_proj'); if(!v('pur_proj')) return; }
+        s('q_pur_scope'); if(!v('pur_scope')) return;
+        const isCompany = v('pur_scope') === 'company';
+        document.getElementById('pur_proj_hint').innerText = '* 客戶支出建議填寫；如暫時留空，Remarks 會自動加入「尚欠Project Code」';
+        document.getElementById('label_pur_client').innerText = '🏢 客戶名稱';
+        if (isCompany) {
+            sv('pur_client', '公司');
+            h('q_pur_client');
+            sv('pur_proj', '');
+            h('q_pur_proj');
+        } else {
+            if (v('pur_client') === '公司') sv('pur_client', '');
+            s('q_pur_client');
+            s('q_pur_proj');
+        }
+        if (v('pur_proj') && !isValidProjectCode(v('pur_proj'))) return;
+        if(!isCompany && !v('pur_client')) return;
         s('q_pur_sup'); if(!v('pur_sup')) return;
+        s('q_pur_category');
+        setCategoryFieldLocked('pur_', !isCompany);
+        if (!isCompany) {
+            sv('pur_category', '');
+        } else if (v('pur_proj')) {
+            if (document.getElementById('pur_category').dataset.touched !== 'true') sv('pur_category', '');
+        } else {
+            setSuggestedCategory('pur_', inferPurchaseCategory());
+        }
         s('q_pur_activity');
         s('q_pur_item'); if(!v('pur_item')) return;
         s('q_pur_price'); if(!v('pur_price')) return;
@@ -952,11 +1007,27 @@
     }
 
     function checkTrans() {
-        ['q_trans_client', 'q_trans_proj', 'q_trans_sup', 'q_trans_activity', 'q_trans_reason', 'q_trans_route', 'q_trans_price', 'q_trans_remarks', 'btn_trans_submit'].forEach(h);
+        ['q_trans_scope', 'q_trans_client', 'q_trans_proj', 'q_trans_sup', 'q_trans_category', 'q_trans_activity', 'q_trans_reason', 'q_trans_route', 'q_trans_price', 'q_trans_remarks', 'btn_trans_submit'].forEach(h);
         if(!v('trans_date')) return;
-        s('q_trans_client'); if(!v('trans_client')) return;
-        if(!isInternalClient(v('trans_client'))) { s('q_trans_proj'); if(!v('trans_proj')) return; }
+        s('q_trans_scope'); if(!v('trans_scope')) return;
+        const isCompany = v('trans_scope') === 'company';
+        document.getElementById('trans_proj_hint').innerText = '* 客戶支出建議填寫；如暫時留空，Remarks 會自動加入「尚欠Project Code」';
+        document.getElementById('label_trans_client').innerText = '🏢 客戶名稱';
+        if (isCompany) {
+            sv('trans_client', '公司');
+            h('q_trans_client');
+            sv('trans_proj', '');
+            h('q_trans_proj');
+        } else {
+            if (v('trans_client') === '公司') sv('trans_client', '');
+            s('q_trans_client');
+            s('q_trans_proj');
+        }
+        if (v('trans_proj') && !isValidProjectCode(v('trans_proj'))) return;
+        if(!isCompany && !v('trans_client')) return;
         s('q_trans_sup'); if(!v('trans_sup')) return;
+        setCategoryFieldLocked('trans_', true);
+        s('q_trans_category'); setSuggestedCategory('trans_', inferTransportCategory()); if(!v('trans_category')) return;
         s('q_trans_activity');
         s('q_trans_reason'); if(!v('trans_reason')) return;
         s('q_trans_route'); if(!v('trans_route')) return;
@@ -965,10 +1036,14 @@
     }
 
     function checkAllow() {
-        ['q_allow_date', 'q_allow_client', 'q_allow_proj', 'q_allow_activity', 'q_allow_att_stage', 'q_allow_att_m1_grp', 'q_allow_att_m2_grp', 'q_allow_internet_amt', 'q_allow_internet_month_grp', 'q_allow_dental_amt', 'q_allow_dental_year_grp', 'q_allow_shift', 'q_allow_time', 'q_allow_remarks', 'btn_allow_submit', 'allow_manual_holiday_row'].forEach(h);
+        ['q_allow_category', 'q_allow_date', 'q_allow_client', 'q_allow_proj', 'q_allow_activity', 'q_allow_att_stage', 'q_allow_att_m1_grp', 'q_allow_att_m2_grp', 'q_allow_internet_amt', 'q_allow_internet_month_grp', 'q_allow_dental_amt', 'q_allow_dental_year_grp', 'q_allow_shift', 'q_allow_time', 'q_allow_remarks', 'btn_allow_submit', 'allow_manual_holiday_row'].forEach(h);
         
         if(!v('allow_type')) return;
         const type = v('allow_type');
+        setCategoryFieldLocked('allow_', true);
+        s('q_allow_category');
+        setSuggestedCategory('allow_', inferAllowanceCategory());
+        if(!v('allow_category')) return;
 
         if (type === 'Attendance') {
             s('q_allow_att_stage'); if(!v('allow_att_stage')) return;
@@ -1025,6 +1100,7 @@
 
             s('q_allow_client'); if(!v('allow_client')) return;
             if(!isInternalClient(v('allow_client'))) { s('q_allow_proj'); if(!v('allow_proj')) return; }
+            if (v('allow_proj') && !isValidProjectCode(v('allow_proj'))) return;
 
             s('q_allow_activity');
 
@@ -1066,6 +1142,143 @@
         return h * 60 + m;
     }
 
+    function populateCategorySelects() {
+        ['pur_category', 'trans_category', 'allow_category'].forEach(id => {
+            const select = document.getElementById(id);
+            if (!select) return;
+            select.innerHTML = '<option value="">-- 請選擇 --</option>';
+            OFFICIAL_CATEGORIES.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                select.appendChild(option);
+            });
+            select.dataset.touched = 'false';
+        });
+    }
+
+    function markCategoryTouched(prefix) {
+        const el = document.getElementById(prefix + 'category');
+        if (el) el.dataset.touched = 'true';
+    }
+
+    function setCategoryFieldLocked(prefix, locked) {
+        const el = document.getElementById(prefix + 'category');
+        if (!el) return;
+        el.disabled = locked;
+        el.style.opacity = locked ? '0.88' : '1';
+        el.style.cursor = locked ? 'not-allowed' : '';
+    }
+
+    function setSuggestedCategory(prefix, category) {
+        const el = document.getElementById(prefix + 'category');
+        if (!el || !category) return;
+        if (el.dataset.touched === 'true' && el.value) return;
+        el.value = category;
+    }
+
+    function inferPurchaseCategoryFromText(text) {
+        text = String(text || '').toLowerCase();
+
+        if (!text.trim()) return 'Others';
+        if (/(crew meal|staff meal|meal allowance|員工餐|伙食|staff messing)/.test(text)) return 'Staff Messing';
+        if (/(business meal|client dinner|dinner|lunch|breakfast|meal|餐飲|宴會|聚餐)/.test(text)) return 'Business Meal';
+        if (/(stationery|paper|ink|toner|printer|printing|文具|印刷|紙|墨盒)/.test(text)) return 'Printing and Stationeries';
+        if (/(office supply|tissue|cleaning|pantry|supplies|清潔|茶水|文儀|用品)/.test(text)) return 'Office Supplies';
+        if (/(laptop|computer|monitor|keyboard|mouse|pc|macbook|電腦|顯示器)/.test(text)) return 'Computer Expenses';
+        if (/(software|adobe|microsoft 365|office 365|subscription|license|saas|軟件|軟體)/.test(text)) return 'Software';
+        if (/(wifi|broadband|internet|sim|telephone|phone|網絡|寬頻|電話)/.test(text)) return 'Telephone & Internet Service';
+        if (/(chair|desk|cabinet|furniture|office equipment|辦公設備)/.test(text)) return 'Office Equipment';
+        if (/(tool|equipment|drill|ladder|工具|器材|設備)/.test(text)) return 'Tools and Equipment';
+        if (/(electricity|water|utility|電費|水費)/.test(text)) return 'Electricity & Water';
+        if (/(repair|maintenance|維修|保養)/.test(text)) return 'Repair and Maintenance';
+        if (/(insurance|保險)/.test(text)) return 'Insurance';
+        if (/(advertising|ad |facebook ads|google ads|宣傳|廣告)/.test(text)) return 'Advertising';
+        if (/(transport|taxi|mtr|bus|uber|車費|運輸)/.test(text)) return 'Transportation';
+        return 'Others';
+    }
+
+    function inferPurchaseCategory() {
+        return inferPurchaseCategoryFromText([v('pur_item'), v('pur_sup'), v('pur_remarks'), v('pur_activity')].join(' '));
+    }
+
+    function inferTransportCategory() {
+        return 'Transportation';
+    }
+
+    function inferAllowanceCategory() {
+        return 'Staff Allowance';
+    }
+
+    function getCategoryLabelByType(type, catId, fallback = 'Others') {
+        if (catId === 1) return fallback || 'Others';
+        if (catId === 2) return 'Transportation';
+        if (catId !== 3) return fallback || 'Others';
+        return 'Staff Allowance';
+    }
+
+    function resolveCategoryValue(catId, formData = {}, existingRecord = null) {
+        const explicitCategory = String(formData?.category || existingRecord?.category || '').trim();
+        const projectCode = String(formData?.proj || existingRecord?.projectCode || '').trim();
+        const scope = String(formData?.scope || existingRecord?.scope || '').trim();
+
+        if (catId === 1) {
+            if (scope === 'customer') return '';
+            if (projectCode) return '';
+            return explicitCategory || 'Others';
+        }
+        if (catId === 2) return 'Transportation';
+        if (catId === 3) return 'Staff Allowance';
+        return explicitCategory;
+    }
+
+    function buildRecordBase(catId, formData, remarks = '') {
+        const shouldFlagMissingProjectCode = (catId === 1 || catId === 2) && formData?.scope === 'customer' && !normalizeProjectCode(formData?.proj || '');
+        const normalizedRemarks = String(remarks || '').trim();
+        const finalRemarks = shouldFlagMissingProjectCode
+            ? (normalizedRemarks.includes('尚欠Project Code') ? normalizedRemarks : (normalizedRemarks ? `${normalizedRemarks} / 尚欠Project Code` : '尚欠Project Code'))
+            : normalizedRemarks;
+        if (formData) formData.remarks = finalRemarks;
+        return {
+            catId,
+            category: resolveCategoryValue(catId, formData),
+            remarks: finalRemarks
+        };
+    }
+
+    function normalizeRecord(rec) {
+        const cloned = { ...rec };
+        const remarks = cloned.remarks ?? cloned.formData?.remarks ?? '';
+        const legacyCategoryMap = {
+            '採購報銷': inferPurchaseCategoryFromText([cloned.item, cloned.supplier, cloned.remarks, cloned.particular].join(' ')),
+            '交通報銷': 'Transportation',
+            '全勤津貼': 'Staff Allowance',
+            '上網費': 'Staff Allowance',
+            '牙科津貼': 'Staff Allowance',
+            '交通補貼': 'Staff Allowance',
+            '超時工作津貼': 'Staff Allowance',
+            '員工津貼': 'Staff Allowance'
+        };
+        const normalizedFormData = {
+            ...cloned.formData,
+            scope: cloned.formData?.scope || (isInternalClient(cloned.client) ? 'company' : 'customer'),
+            proj: normalizeProjectCode(cloned.formData?.proj || cloned.projectCode || ''),
+            category: legacyCategoryMap[cloned.category] || cloned.category || cloned.formData?.category || ''
+        };
+        const shouldFlagMissingProjectCode = (cloned.catId === 1 || cloned.catId === 2) && normalizedFormData.scope === 'customer' && !normalizedFormData.proj;
+        const normalizedRemarks = String(remarks || '').trim();
+        cloned.remarks = shouldFlagMissingProjectCode
+            ? (normalizedRemarks.includes('尚欠Project Code') ? normalizedRemarks : (normalizedRemarks ? `${normalizedRemarks} / 尚欠Project Code` : '尚欠Project Code'))
+            : normalizedRemarks;
+        cloned.category = resolveCategoryValue(cloned.catId, normalizedFormData, cloned);
+        cloned.projectCode = normalizedFormData.proj;
+        return cloned;
+    }
+
+    function getEffectiveCategory(rec) {
+        return resolveCategoryValue(rec?.catId, rec?.formData || {}, rec);
+    }
+
     function getFormData(prefix, keys) {
         let data = {};
         keys.forEach(k => data[k] = v(prefix + k));
@@ -1094,10 +1307,11 @@
     }
 
     function pushRecord(rec) { 
+        const normalized = normalizeRecord(rec);
         if (editModeIndex > -1) {
-            records[editModeIndex] = rec; // 覆蓋舊資料
+            records[editModeIndex] = normalized; // 覆蓋舊資料
         } else {
-            records.push(rec); // 新增
+            records.push(normalized); // 新增
         }
         saveRecordsToLocal(); 
         renderTable(); 
@@ -1106,46 +1320,54 @@
 
     function savePur() {
         const rawDate = v('pur_date'); const d = formatDate(rawDate);
-        const c = v('pur_client'); const p = v('pur_price'); const r = v('pur_remarks'); const act = v('pur_activity');
+        const scope = v('pur_scope'); const c = scope === 'company' ? '公司' : v('pur_client'); const p = v('pur_price'); const r = v('pur_remarks'); const act = v('pur_activity');
+        const projectCode = normalizeProjectCode(v('pur_proj'));
         
         let pStr = `${d}_${c}`;
         if (act) pStr += `_${act}`;
         pStr += `_${v('pur_item')}`;
-        if (r) pStr += `_${r}`;
+        const formData = getFormData('pur_', ['date', 'scope', 'client', 'proj', 'sup', 'category', 'activity', 'item', 'price', 'remarks']);
+        formData.proj = projectCode;
 
         let record = { 
+            ...buildRecordBase(1, formData, r),
             catId: 1, rawDate: rawDate,
-            projectCode: isInternalClient(c) ? 'NA' : (v('pur_proj') || 'NA'), supplier: v('pur_sup'),
+            scope, projectCode, supplier: v('pur_sup'),
             client: c, item: v('pur_item'), particular: pStr, price: p,
-            formData: getFormData('pur_', ['date', 'client', 'proj', 'sup', 'activity', 'item', 'price', 'remarks'])
+            formData
         };
         pushRecord(record);
     }
 
     function saveTrans() {
         const rawDate = v('trans_date'); const d = formatDate(rawDate);
-        const c = v('trans_client'); const reason = v('trans_reason'); const route = v('trans_route'); const r = v('trans_remarks');
+        const scope = v('trans_scope'); const c = scope === 'company' ? '公司' : v('trans_client'); const reason = v('trans_reason'); const route = v('trans_route'); const r = v('trans_remarks');
+        const projectCode = normalizeProjectCode(v('trans_proj'));
         
         const act = v('trans_activity');
         let pStr = `${d}_${c}`;
         if (act) pStr += `_${act}`;
         pStr += `_${reason}_${route}_${globalShortName}_車資`;
-        if (r) pStr += `_${r}`;
+        const formData = getFormData('trans_', ['date', 'scope', 'client', 'proj', 'sup', 'category', 'activity', 'reason', 'route', 'price', 'remarks']);
+        formData.proj = projectCode;
 
         let record = { 
+            ...buildRecordBase(2, formData, r),
             catId: 2, rawDate: rawDate,
-            projectCode: isInternalClient(c) ? 'NA' : (v('trans_proj') || 'NA'), supplier: v('trans_sup'),
+            scope, projectCode, supplier: v('trans_sup'),
             client: c, item: reason, particular: pStr, price: v('trans_price'),
-            formData: getFormData('trans_', ['date', 'client', 'proj', 'sup', 'activity', 'reason', 'route', 'price', 'remarks'])
+            formData
         };
         pushRecord(record);
     }
 
     function saveAllow() {
         const type = v('allow_type');
+        const allowanceFormData = getFormData('allow_', ['type', 'category', 'att_stage', 'att_m1', 'att_y1', 'att_m2', 'att_y2', 'internet_amt', 'internet_month', 'internet_year', 'dental_amt', 'dental_year', 'date', 'client', 'proj', 'activity', 'shift', 'start_time', 'start_loc', 'end_time', 'end_loc', 'remarks', 'manual_holiday']);
         let record = { 
-            catId: 3, projectCode: 'NA', supplier: globalFullName, client: '公司', item: '', particular: '', price: 0,
-            formData: getFormData('allow_', ['type', 'att_stage', 'att_m1', 'att_y1', 'att_m2', 'att_y2', 'internet_amt', 'internet_month', 'internet_year', 'dental_amt', 'dental_year', 'date', 'client', 'proj', 'activity', 'shift', 'start_time', 'start_loc', 'end_time', 'end_loc', 'remarks', 'manual_holiday'])
+            ...buildRecordBase(3, allowanceFormData, allowanceFormData.remarks),
+            catId: 3, projectCode: '', supplier: globalFullName, client: '公司', item: '', particular: '', price: 0,
+            formData: allowanceFormData
         };
         
         if (type === 'Attendance') {
@@ -1171,7 +1393,7 @@
         } else {
             const rawDate = v('allow_date'); const d = formatDate(rawDate); const c = v('allow_client'); const r = v('allow_remarks');
             record.rawDate = rawDate; record.client = c;
-            record.projectCode = isInternalClient(c) ? 'NA' : (v('allow_proj') || 'NA');
+            record.projectCode = normalizeProjectCode(v('allow_proj'));
             record.price = type === '50' ? 50 : 400;
             
             let pParts = [d, c];
@@ -1217,7 +1439,6 @@
             const locStr = v('allow_start_loc') ? `${v('allow_start_loc')} > ${v('allow_end_loc')}` : `於 ${v('allow_end_loc')} 結束`;
             record.item = `${isWknd ? 'Rest Day' : 'Out of office'} $${type} (${locStr})`;
             
-            if (r) pParts.push(r);
             record.particular = pParts.join('_');
         }
         pushRecord(record);
@@ -1234,33 +1455,48 @@
         if (rec.catId === 1) {
             startFlow('purchase');
             Object.keys(rec.formData).forEach(k => sv('pur_' + k, rec.formData[k]));
+            if (!rec.formData?.category && rec.category) sv('pur_category', rec.category);
+            document.getElementById('pur_category').dataset.touched = 'true';
             checkPur();
         } else if (rec.catId === 2) {
             startFlow('transport');
             Object.keys(rec.formData).forEach(k => sv('trans_' + k, rec.formData[k]));
+            if (!rec.formData?.category && rec.category) sv('trans_category', rec.category);
+            document.getElementById('trans_category').dataset.touched = 'true';
             checkTrans();
         } else if (rec.catId === 3) {
             startFlow('allowance');
             Object.keys(rec.formData).forEach(k => sv('allow_' + k, rec.formData[k]));
+            if (!rec.formData?.category && rec.category) sv('allow_category', rec.category);
+            document.getElementById('allow_category').dataset.touched = 'true';
             checkAllow();
         }
     }
 
     function renderTable() {
+        records = records.map(normalizeRecord);
         const tbody = document.getElementById('tableBody'); tbody.innerHTML = ''; 
         updateSummary();
         updateSortUI();
-        if (records.length === 0) return tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="empty-state-icon">📄</div>尚未加入任何記錄<br>請點擊左上方「新增報銷」開始，資料將自動保存於本地瀏覽器。</td></tr>';
+        if (records.length === 0) return tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><div class="empty-state-icon">📄</div>尚未加入任何記錄<br>請點擊左上方「新增報銷」開始，資料將自動保存於本地瀏覽器。</td></tr>';
         
         records.forEach((rec, index) => {
             const tr = document.createElement('tr');
 
-            const numberCell = document.createElement('td');
-            numberCell.className = 'col-number';
-            numberCell.textContent = index + 1;
-
             const projectCell = document.createElement('td');
             projectCell.textContent = rec.projectCode || '';
+
+            const categoryCell = document.createElement('td');
+            const categoryBadge = document.createElement('span');
+            categoryBadge.className = 'category-text';
+            const effectiveCategory = getEffectiveCategory(rec);
+            if (effectiveCategory) {
+                categoryBadge.textContent = effectiveCategory;
+                categoryCell.appendChild(categoryBadge);
+            } else {
+                categoryCell.textContent = '—';
+                categoryCell.className = 'remarks-text';
+            }
 
             const supplierCell = document.createElement('td');
             supplierCell.className = 'supplier-text';
@@ -1275,6 +1511,10 @@
             const amountCell = document.createElement('td');
             amountCell.className = 'col-amount';
             amountCell.textContent = formatMoney(rec.price);
+
+            const remarksCell = document.createElement('td');
+            remarksCell.className = 'remarks-text';
+            remarksCell.textContent = rec.remarks || '—';
 
             const actionCell = document.createElement('td');
             actionCell.className = 'action-td';
@@ -1296,10 +1536,11 @@
             actionCell.appendChild(editButton);
             actionCell.appendChild(deleteButton);
 
-            tr.appendChild(numberCell);
             tr.appendChild(projectCell);
+            tr.appendChild(categoryCell);
             tr.appendChild(supplierCell);
             tr.appendChild(particularCell);
+            tr.appendChild(remarksCell);
             tr.appendChild(amountCell);
             tr.appendChild(actionCell);
 
@@ -1333,11 +1574,12 @@
             const sheet = workbook.addWorksheet('Expense Claim');
 
             // 設置欄寬
-            sheet.getColumn('A').width = 14;
-            sheet.getColumn('B').width = 22;
+            sheet.getColumn('A').width = 18;
+            sheet.getColumn('B').width = 20;
             sheet.getColumn('C').width = 24;
-            sheet.getColumn('D').width = 65;
-            sheet.getColumn('E').width = 18;
+            sheet.getColumn('D').width = 50;
+            sheet.getColumn('E').width = 26;
+            sheet.getColumn('F').width = 18;
 
             const borderThin = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             const borderThick = { top: {style:'medium'}, left: {style:'medium'}, bottom: {style:'medium'}, right: {style:'medium'} };
@@ -1346,7 +1588,7 @@
             const alignLeftWrap = { vertical: 'middle', horizontal: 'left', wrapText: true };
             const fillGray = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEAEAEA' } };
 
-            sheet.mergeCells('A1:E1');
+            sheet.mergeCells('A1:F1');
             const titleCell = sheet.getCell('A1');
             titleCell.value = 'Expense Claim Form';
             titleCell.font = { name: 'Arial', size: 20, bold: true };
@@ -1376,14 +1618,17 @@
             sheet.mergeCells('C2:D4');
             sheet.getCell('C2').value = '';
 
+            sheet.mergeCells('E2:F2');
             sheet.getCell('E2').value = ecNum;
             sheet.getCell('E2').alignment = alignCenter;
             sheet.getCell('E2').fill = fillGray;
             
+            sheet.mergeCells('E3:F3');
             sheet.getCell('E3').value = 'Total Amount';
             sheet.getCell('E3').alignment = alignCenter;
             sheet.getCell('E3').font = { bold: true };
 
+            sheet.mergeCells('E4:F4');
             sheet.getCell('E4').value = totalSum;
             sheet.getCell('E4').numFmt = '"$ "#,##0.00';
             sheet.getCell('E4').alignment = alignRight;
@@ -1393,18 +1638,21 @@
             sheet.getCell('B2').border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             sheet.getCell('C2').border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'thin'} };
             sheet.getCell('E2').border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'medium'} };
+            sheet.getCell('F2').border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'medium'} };
 
             sheet.getCell('A3').border = { top: {style:'thin'}, left: {style:'medium'}, bottom: {style:'thin'}, right: {style:'thin'} };
             sheet.getCell('B3').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
             sheet.getCell('E3').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'medium'} };
+            sheet.getCell('F3').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'medium'} };
 
             sheet.getCell('A4').border = { top: {style:'thin'}, left: {style:'medium'}, bottom: {style:'medium'}, right: {style:'thin'} };
             sheet.getCell('B4').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'thin'} };
             sheet.getCell('E4').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'medium'} };
+            sheet.getCell('F4').border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'medium'} };
 
             sheet.getRow(5).height = 10;
 
-            const headers = ['編號', '項目編號', '供應商', '分項', '價錢'];
+            const headers = ['項目編號', '支出報銷類別', '供應商', '分項', '備註', '付款金額'];
             headers.forEach((h, i) => {
                 const cell = sheet.getCell(6, i + 1);
                 cell.value = h;
@@ -1418,29 +1666,30 @@
             records.forEach((rec, idx) => {
                 const row = sheet.getRow(currentRow);
                 
-                row.getCell(1).value = idx + 1;
+                row.getCell(1).value = rec.projectCode;
                 row.getCell(1).alignment = alignCenter;
                 
-                row.getCell(2).value = rec.projectCode;
+                row.getCell(2).value = getEffectiveCategory(rec);
                 row.getCell(2).alignment = alignCenter;
                 
                 row.getCell(3).value = rec.supplier;
                 row.getCell(3).alignment = alignCenter;
                 
-                // 設定文字換行 (Wrap Text)
                 row.getCell(4).value = rec.particular;
                 row.getCell(4).alignment = alignLeftWrap;
-                
-                row.getCell(5).value = parseFloat(rec.price);
-                row.getCell(5).numFmt = '$#,##0.00';
-                row.getCell(5).alignment = alignRight;
 
-                for(let i=1; i<=5; i++) {
+                row.getCell(5).value = rec.remarks || '';
+                row.getCell(5).alignment = alignLeftWrap;
+                
+                row.getCell(6).value = parseFloat(rec.price);
+                row.getCell(6).numFmt = '$#,##0.00';
+                row.getCell(6).alignment = alignRight;
+
+                for(let i=1; i<=6; i++) {
                     row.getCell(i).border = borderThin;
                 }
                 
-                // 動態計算行高，保證文字不被截斷
-                const charCount = rec.particular.length;
+                const charCount = Math.max((rec.particular || '').length, (rec.remarks || '').length);
                 row.height = Math.max(22, Math.ceil(charCount / 30) * 16);
                 
                 currentRow++;
