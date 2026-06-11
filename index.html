@@ -189,18 +189,20 @@
 
         /* Table */
         .table-container { overflow-x: auto; border-radius: 24px; border: 1px solid rgba(148,163,184,0.2); box-shadow: 0 16px 34px rgba(15,23,42,0.06); background: rgba(255,255,255,0.9); }
-        table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: transparent; min-width: 920px; }
-        th, td { padding: 13px 12px; text-align: left; border-bottom: 1px solid rgba(226,232,240,0.9); }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13.5px; background: transparent; min-width: 1100px; }
+        th, td { padding: 13px 12px; text-align: left; vertical-align: middle; border-bottom: 1px solid rgba(226,232,240,0.9); }
         th { background: rgba(248,250,252,0.92); color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: 0.04em; }
         tr:hover { background-color: rgba(248,250,252,0.9); }
         .particular-text { color: var(--primary); font-weight: 600; font-family: 'Consolas', monospace; font-size: 13px; background: linear-gradient(135deg, rgba(204,251,241,0.6), rgba(255,247,237,0.8)); padding: 8px 10px; border-radius: 12px; word-break: break-word; line-height: 1.5; display: inline-block; border: 1px solid rgba(15,118,110,0.08);}
         .col-number { font-weight: 700; color: #475569; }
-        .col-amount { font-weight: 700; color: #0f766e; }
+        .col-amount { font-weight: 700; color: #0f766e; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .amount-heading { text-align: right; }
         .supplier-text { font-weight: 600; color: #0f172a; }
         .category-text { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; background: rgba(15, 118, 110, 0.08); color: #115e59; font-size: 12px; font-weight: 700; white-space: nowrap; }
         .remarks-text { color: #64748b; line-height: 1.45; }
         
-        .action-td { display: flex; gap: 8px; justify-content: center; }
+        .action-td { text-align: center; }
+        .action-buttons { display: flex; gap: 8px; align-items: center; justify-content: center; }
         .icon-btn { background: rgba(255,255,255,0.95); border: 1px solid rgba(148,163,184,0.2); cursor: pointer; font-size: 18px; padding: 8px; border-radius: 12px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
         .edit-btn { color: var(--primary); }
         .edit-btn:hover { background-color: rgba(204,251,241,0.55); }
@@ -365,15 +367,24 @@
 
     <div class="table-container">
         <table>
+            <colgroup>
+                <col style="width:12%">
+                <col style="width:15%">
+                <col style="width:14%">
+                <col style="width:24%">
+                <col style="width:16%">
+                <col style="width:10%">
+                <col style="width:9%">
+            </colgroup>
             <thead>
                 <tr>
-                    <th width="12%">項目編號</th>
-                    <th width="16%">支出報銷類別</th>
-                    <th width="14%">供應商</th>
-                    <th width="28%">分項</th>
-                    <th width="18%">備註</th>
-                    <th width="12%">付款金額</th>
-                    <th width="10%" style="text-align: center;">操作</th>
+                    <th>項目編號</th>
+                    <th>支出報銷類別</th>
+                    <th>供應商</th>
+                    <th>分項</th>
+                    <th>備註</th>
+                    <th class="amount-heading">付款金額</th>
+                    <th style="text-align: center;">操作</th>
                 </tr>
             </thead>
             <tbody id="tableBody">
@@ -465,7 +476,7 @@
                 <div class="step-field optional hidden" id="q_pur_activity"><label>🎯 具體活動名稱 (非必填)</label><input type="text" id="pur_activity" placeholder="例: 飲水工作坊" oninput="checkPur()"></div>
                 
                 <div class="step-field hidden" id="q_pur_item"><label>📦 支出項目描述 (Item Description)</label><input type="text" id="pur_item" placeholder="例: 430ml瓶裝水100支" oninput="checkPur()"></div>
-                <div class="step-field hidden" id="q_pur_price"><label>💰 金額 HKD</label><input type="number" step="0.1" id="pur_price" placeholder="例: 150" oninput="checkPur()"></div>
+                <div class="step-field hidden" id="q_pur_price"><label>💰 金額 HKD</label><input type="number" step="0.01" min="0.01" inputmode="decimal" id="pur_price" placeholder="例: 150.00" oninput="checkPur()" onblur="normalizeAmountInput('pur_price')"></div>
                 
                 <div class="step-field optional hidden" id="q_pur_remarks">
                     <label>⚠️ 備註 (非必填)</label>
@@ -489,7 +500,7 @@
 
                 <div class="step-field hidden" id="q_trans_reason"><label>🚕 出行原因 / 目的</label><input type="text" id="trans_reason" placeholder="例: 運送物資至展覽場地" oninput="checkTrans()"></div>
                 <div class="step-field hidden" id="q_trans_route"><label>📍 交通路線</label><input type="text" id="trans_route" placeholder="例: 526>旺角>526" oninput="checkTrans()"></div>
-                <div class="step-field hidden" id="q_trans_price"><label>💰 車費 HKD</label><input type="number" step="0.1" id="trans_price" placeholder="例: 50" oninput="checkTrans()"></div>
+                <div class="step-field hidden" id="q_trans_price"><label>💰 車費 HKD</label><input type="number" step="0.01" min="0.01" inputmode="decimal" id="trans_price" placeholder="例: 50.00" oninput="checkTrans()" onblur="normalizeAmountInput('trans_price')"></div>
                 
                 <div class="step-field optional hidden" id="q_trans_remarks">
                     <label>⚠️ 備註 (非必填)</label>
@@ -672,6 +683,7 @@
         document.getElementById('allow_att_y2').value = currentYear;
         document.getElementById('allow_internet_year').value = currentYear;
         document.getElementById('allow_dental_year').value = currentYear;
+        setupAmountInputs();
 
         const savedFullName = localStorage.getItem('ec_fullname');
         const savedShortName = localStorage.getItem('ec_shortname');
@@ -709,15 +721,44 @@
     };
 
     function saveRecordsToLocal() { localStorage.setItem('ec_records_data', JSON.stringify(records)); }
+    function normalizeAmount(value) {
+        const amount = Number.parseFloat(value);
+        return Number.isFinite(amount) && amount > 0 ? Math.round(amount * 100) / 100 : null;
+    }
+    function isValidAmount(value) {
+        return normalizeAmount(value) !== null;
+    }
+    function normalizeAmountInput(id) {
+        const el = document.getElementById(id);
+        const amount = normalizeAmount(el?.value);
+        if (el && amount !== null) el.value = amount.toFixed(2);
+    }
+    function setupAmountInputs() {
+        ['pur_price', 'trans_price'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el || el.dataset.wheelGuard === 'true') return;
+            el.addEventListener('wheel', event => {
+                if (document.activeElement === el) {
+                    event.preventDefault();
+                    el.blur();
+                }
+            }, { passive: false });
+            el.addEventListener('keydown', event => {
+                if (event.key === 'ArrowUp' || event.key === 'ArrowDown') event.preventDefault();
+            });
+            el.dataset.wheelGuard = 'true';
+        });
+    }
     function formatMoney(value) {
         const amount = Number.parseFloat(value);
         return `$${(Number.isFinite(amount) ? amount : 0).toFixed(2)}`;
     }
     function getTotalAmount() {
-        return records.reduce((sum, rec) => {
+        const totalCents = records.reduce((sum, rec) => {
             const amount = Number.parseFloat(rec.price);
-            return sum + (Number.isFinite(amount) ? amount : 0);
+            return sum + (Number.isFinite(amount) ? Math.round(amount * 100) : 0);
         }, 0);
+        return totalCents / 100;
     }
     function safeDateValue(rawDate) {
         const parsed = Date.parse(rawDate);
@@ -1011,7 +1052,7 @@
         }
         s('q_pur_activity');
         s('q_pur_item'); if(!v('pur_item')) return;
-        s('q_pur_price'); if(!v('pur_price')) return;
+        s('q_pur_price'); if(!isValidAmount(v('pur_price'))) return;
         s('q_pur_remarks'); s('btn_pur_submit');
     }
 
@@ -1040,7 +1081,7 @@
         s('q_trans_activity');
         s('q_trans_reason'); if(!v('trans_reason')) return;
         s('q_trans_route'); if(!v('trans_route')) return;
-        s('q_trans_price'); if(!v('trans_price')) return;
+        s('q_trans_price'); if(!isValidAmount(v('trans_price'))) return;
         s('q_trans_remarks'); s('btn_trans_submit');
     }
 
@@ -1330,7 +1371,8 @@
 
     function savePur() {
         const rawDate = v('pur_date'); const d = formatDate(rawDate);
-        const scope = v('pur_scope'); const c = scope === 'company' ? '公司' : v('pur_client'); const p = v('pur_price'); const r = v('pur_remarks'); const act = v('pur_activity');
+        const scope = v('pur_scope'); const c = scope === 'company' ? '公司' : v('pur_client'); const p = normalizeAmount(v('pur_price')); const r = v('pur_remarks'); const act = v('pur_activity');
+        if (p === null) return alert("錯誤：請輸入有效的正數金額！");
         const projectCode = normalizeProjectCode(v('pur_proj'));
         
         let pStr = `${d}_${c}`;
@@ -1338,6 +1380,7 @@
         pStr += `_${v('pur_item')}`;
         const formData = getFormData('pur_', ['date', 'scope', 'client', 'proj', 'sup', 'category', 'activity', 'item', 'price', 'remarks']);
         formData.proj = projectCode;
+        formData.price = p.toFixed(2);
 
         let record = { 
             ...buildRecordBase(1, formData, r),
@@ -1352,6 +1395,8 @@
     function saveTrans() {
         const rawDate = v('trans_date'); const d = formatDate(rawDate);
         const scope = v('trans_scope'); const c = scope === 'company' ? '公司' : v('trans_client'); const reason = v('trans_reason'); const route = v('trans_route'); const r = v('trans_remarks');
+        const price = normalizeAmount(v('trans_price'));
+        if (price === null) return alert("錯誤：請輸入有效的正數金額！");
         const projectCode = normalizeProjectCode(v('trans_proj'));
         
         const act = v('trans_activity');
@@ -1360,12 +1405,13 @@
         pStr += `_${reason}_${route}_${globalShortName}_車資`;
         const formData = getFormData('trans_', ['date', 'scope', 'client', 'proj', 'sup', 'category', 'activity', 'reason', 'route', 'price', 'remarks']);
         formData.proj = projectCode;
+        formData.price = price.toFixed(2);
 
         let record = { 
             ...buildRecordBase(2, formData, r),
             catId: 2, rawDate: rawDate,
             scope, projectCode, supplier: v('trans_sup'),
-            client: c, item: reason, particular: pStr, price: v('trans_price'),
+            client: c, item: reason, particular: pStr, price,
             formData
         };
         pushRecord(record);
@@ -1538,6 +1584,8 @@
 
             const actionCell = document.createElement('td');
             actionCell.className = 'action-td';
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'action-buttons';
 
             const editButton = document.createElement('button');
             editButton.className = 'icon-btn edit-btn';
@@ -1553,8 +1601,9 @@
             deleteButton.textContent = '🗑️';
             deleteButton.onclick = () => deleteRecord(index);
 
-            actionCell.appendChild(editButton);
-            actionCell.appendChild(deleteButton);
+            actionButtons.appendChild(editButton);
+            actionButtons.appendChild(deleteButton);
+            actionCell.appendChild(actionButtons);
 
             tr.appendChild(projectCell);
             tr.appendChild(categoryCell);
@@ -1587,8 +1636,7 @@
 
         try {
             const ecNum = document.getElementById('mainECNumber').value.trim() || '';
-            let totalSum = 0;
-            records.forEach(r => totalSum += parseFloat(r.price));
+            const totalSum = getTotalAmount();
 
             const workbook = new ExcelJS.Workbook();
             const sheet = workbook.addWorksheet('Expense Claim');
